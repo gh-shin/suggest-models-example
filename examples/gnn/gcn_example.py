@@ -1,183 +1,456 @@
-# GCN (Graph Convolutional Network) Example for Recommendations
-
-"""
-GCN (Graph Convolutional Network)은 그래프 구조 데이터에서 노드 표현(임베딩)을 학습하기 위한
-대표적인 GNN(Graph Neural Network) 알고리즘 중 하나입니다.
-추천 시스템에서는 사용자-아이템 상호작용 그래프에 적용되어 사용자 및 아이템 임베딩을 학습하고,
-이를 기반으로 평점 예측 또는 아이템 순위 매기기에 활용될 수 있습니다.
-
-LightGCN은 GCN을 추천 시스템에 맞게 단순화한 모델인 반면,
-표준 GCN은 특징 변환(선형 레이어)과 비선형 활성화 함수를 각 레이어에 포함할 수 있습니다.
-
-본 예제는 GCN 모델의 기본 아이디어를 추천 태스크에 적용하는 개념을 보여주기 위한 것이며,
-실제 구현은 추후 추가될 예정입니다.
-
-주요 특징:
-- 그래프 컨볼루션: 각 노드는 이웃 노드들의 특징 정보를 집계하여 자신의 표현을 업데이트합니다.
-- 레이어 스태킹(Layer Stacking): 여러 GCN 레이어를 쌓아 더 넓은 범위의 이웃 정보를 포착합니다.
-- 특징 변환 및 비선형 활성화: (선택 사항) 각 레이어에서 노드 특징에 선형 변환 및 비선형 활성화 함수(예: ReLU)를 적용할 수 있습니다.
-
-장점:
-- 노드 간의 관계 정보를 효과적으로 활용하여 임베딩 학습.
-- 다양한 유형의 그래프 데이터에 적용 가능.
-- 추천 외에도 노드 분류, 링크 예측 등 다양한 그래프 관련 태스크에 활용.
-
-단점:
-- 너무 많은 레이어를 쌓을 경우 과도한 평탄화(Over-smoothing) 문제 발생 가능 (모든 노드 임베딩이 유사해짐).
-- 대규모 그래프에서는 계산 비용이 클 수 있음 (LightGCN은 이를 일부 완화).
-- 명시적인 사용자/아이템 특징(Attributes)이 없는 경우, 원-핫 인코딩된 ID로 시작해야 하며 이는 매우 고차원적일 수 있음.
-
-성능 고려 사항:
-- 학습 시간은 노드 수, 엣지 수, 임베딩 차원, GCN 레이어 수, 특징 변환의 복잡도에 따라 달라집니다.
-- 희소 행렬 연산을 통해 효율적으로 구현 가능.
-
-참고 자료:
-- Kipf, T. N., & Welling, M. (2017). Semi-Supervised Classification with Graph Convolutional Networks. In International Conference on Learning Representations (ICLR).
-"""
-
-import numpy as np
+# examples/gnn/gcn_example.py
 import pandas as pd
-# import tensorflow as tf # 또는 PyTorch, Spektral, PyTorch Geometric 등 실제 구현 시 필요
+import numpy as np
+import os
+import sys
+import tensorflow as tf
+# For a real GCN, you'd use graph processing libraries or efficient ways to handle sparse matrices.
+# from tensorflow.keras.layers import Layer, Embedding, Dense, Activation
+# from tensorflow.keras.models import Model
+# from sklearn.preprocessing import LabelEncoder
+# import scipy.sparse as sp
 
-# 더미 데이터 생성 (사용자-아이템 상호작용 그래프)
-def generate_dummy_graph_data(num_users=100, num_items=50, num_interactions=1000):
-    print("Generating dummy user-item interaction graph data for GCN (placeholder)...")
-    user_ids = np.random.randint(0, num_users, num_interactions)
-    item_ids = np.random.randint(0, num_items, num_interactions)
-    # GCN에서는 평점보다는 상호작용 여부가 중요할 수 있지만, 평점을 특징으로 사용할 수도 있음
-    ratings = np.random.randint(1, 6, num_interactions)
-    interactions_df = pd.DataFrame({
-        'user_id': user_ids,
-        'item_id': item_ids,
-        'rating': ratings # GCN의 입력 특징으로 사용될 수 있음
-    })
-    print(f"Generated {len(interactions_df)} dummy interactions.")
-    # 실제 GCN에서는 이 데이터를 인접 행렬(Adjacency Matrix) 및 특징 행렬(Feature Matrix)로 변환 필요
-    return interactions_df, num_users, num_items
+# --- GCN (Graph Convolutional Network) for Recommendations: Detailed Explanation ---
+# A Graph Convolutional Network (GCN) is a type of neural network designed to operate directly on graph data.
+# It learns node representations (embeddings) by considering information from their local graph neighborhoods.
+# In recommendation systems, GCNs can be applied to the user-item interaction graph to learn embeddings
+# for users and items, which can then be used for tasks like rating prediction or item ranking.
+#
+# Reference:
+# - Seminal Paper: Kipf, T. N., & Welling, M. (2017). Semi-Supervised Classification with Graph Convolutional Networks.
+#   In International Conference on Learning Representations (ICLR).
+#   Link: https://arxiv.org/abs/1609.02907
+#
+# Core Components and Concepts:
+# 1. Graph Representation:
+#    - Nodes (Vertices): Represent entities, e.g., users and items in a recommendation graph.
+#    - Edges: Represent relationships or interactions between nodes.
+#    - Adjacency Matrix (A): A square matrix where A_ij = 1 if there's an edge between node i and node j, else 0.
+#    - Feature Matrix (X or H^(0)): A matrix where each row contains the feature vector for a node.
+#      If nodes don't have explicit features, identity matrices (one-hot encodings of IDs) or learnable
+#      embeddings can be used as initial features.
+#
+# 2. The GCN Layer (Graph Convolution):
+#    - The core of a GCN is its layer-wise propagation rule, which updates each node's representation
+#      by aggregating information from its neighbors.
+#    - For a GCN layer 'l', the representation H^(l+1) for all nodes is computed from H^(l) (representations from the previous layer) as:
+#      H^(l+1) = σ( D̃^(-0.5) Ã D̃^(-0.5) H^(l) W^(l) )
+#      Where:
+#        - Ã (A_tilde) = A + I_N: The adjacency matrix A with self-loops added (I_N is the identity matrix).
+#          Self-loops ensure that a node's own features from the previous layer are included in its updated representation.
+#        - D̃ (D_tilde): The diagonal degree matrix of Ã (i.e., D̃_ii = sum_j Ã_ij).
+#        - D̃^(-0.5): The inverse square root of the degree matrix. Multiplying by D̃^(-0.5) on both sides
+#          (symmetric normalization) helps normalize the aggregated features and prevents issues related to
+#          varying node degrees, stabilizing the learning process.
+#        - H^(l): The matrix of node activations/features from layer 'l'. H^(0) is the initial node feature matrix X.
+#        - W^(l): A trainable weight matrix for layer 'l'. This matrix transforms the aggregated neighbor features.
+#        - σ (sigma): A non-linear activation function (e.g., ReLU, tanh).
+#    - Essentially, for each node, the GCN layer calculates a normalized sum of its neighbors' features (including its own),
+#      transforms this sum with a learned weight matrix, and then applies an activation function.
+#
+# 3. Stacking GCN Layers:
+#    - Multiple GCN layers can be stacked to allow information to propagate across further distances in the graph.
+#    - A K-layer GCN allows each node's final representation to be influenced by its K-hop neighborhood.
+#
+# 4. Application to Recommendation:
+#    - Graph Construction: Typically, a bipartite user-item graph is created. Users and items are nodes,
+#      and an interaction (e.g., click, purchase, rating) forms an edge.
+#      This bipartite graph can be represented by an adjacency matrix where the combined set of users and items
+#      forms the nodes, often structured as A = [[0, R], [R.T, 0]], where R is the user-item interaction matrix.
+#    - Initial Features (H^(0)):
+#        - If no explicit user/item features are available, initial embeddings (E^(0)) for users and items can be learned
+#          (similar to LightGCN or matrix factorization) and used as H^(0).
+#        - Alternatively, one-hot encoded IDs can serve as initial features, which are then transformed by the
+#          first GCN layer's weight matrix W^(0).
+#    - Output: After passing through GCN layers, the model outputs refined embeddings for users and items.
+#    - Prediction: These learned embeddings can be used for various recommendation tasks:
+#        - Rating prediction: Dot product of user and item embeddings, possibly followed by dense layers.
+#        - Item ranking: Using a BPR loss or similar pairwise ranking loss based on dot products.
+#
+# Pros:
+# - Effective Node Representation Learning: GCNs are powerful in learning meaningful representations of nodes
+#   by leveraging graph structure and neighbor features.
+# - Foundational Model: It's a relatively simple yet effective GNN model that forms the basis for many
+#   more advanced graph neural networks.
+# - Versatile: Can be applied to various graph-based tasks like node classification, link prediction, and graph classification,
+#   not just recommendation.
+#
+# Cons:
+# - Transductive Nature (Original Formulation): The original GCN formulation assumes a fixed graph during training
+#   and testing, making it inherently transductive (it cannot easily generalize to unseen nodes without modifications
+#   like those in inductive models such as GraphSAGE or PinSage).
+# - Over-smoothing: With many GCN layers, node embeddings can become overly similar, losing discriminative power.
+#   This limits the practical depth of GCNs.
+# - Scalability: For very large graphs, full-batch GCN training can be computationally expensive due to operations
+#   on the entire adjacency matrix. Sampling techniques are often needed for scalability.
+# - Less Specialized for CF than LightGCN: For pure collaborative filtering on user-item graphs, LightGCN (which
+#   removes W^(l) and σ from the propagation steps) often performs better or more efficiently by focusing solely on
+#   neighborhood aggregation for embedding smoothing. Standard GCNs might introduce unnecessary complexity.
+#
+# Typical Use Cases:
+# - Node classification in social networks, citation networks, knowledge graphs.
+# - Link prediction.
+# - As a component in more complex GNN architectures.
+# - Recommendation, especially when node features are available and their transformation is beneficial, or when
+#   a more general GNN framework is being explored before specializing to models like LightGCN.
+# ---
 
-def build_gcn_recommender_model(num_nodes, feature_dim, embedding_dim=64, num_gcn_layers=2, use_feature_transform=True, learning_rate=0.001):
+# Dynamically add project root to sys.path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+# --- Model Hyperparameters (Conceptual) ---
+EMBEDDING_DIM_INITIAL = 64 # Dimension for initial user/item ID embeddings (if used as H0)
+GCN_LAYER_UNITS = [64, 32] # Output units for each GCN layer
+USE_BIAS_GCN = True
+ACTIVATION_GCN = 'relu' # Activation for GCN layers
+LEARNING_RATE = 0.001
+EPOCHS = 5 # Small for example
+BATCH_SIZE = 256 # For link prediction or rating prediction training
+
+# --- Placeholder Data Loading and Preprocessing for GCN ---
+def load_and_preprocess_gcn_data(base_filepath='data/dummy_interactions.csv'):
     """
-    GCN 기반 추천 모델을 구축합니다 (구현 예정).
-    num_nodes: 총 노드 수 (사용자 수 + 아이템 수)
-    feature_dim: 초기 노드 특징의 차원
+    Placeholder for loading interaction data, encoding IDs, creating initial features (H0),
+    and constructing the normalized adjacency matrix (A_hat) for GCN.
     """
-    print(f"Building GCN Recommender model (placeholder)...")
-    print(f"Total nodes: {num_nodes}, Initial feature dim: {feature_dim}")
-    print(f"Embedding dim (output of GCN): {embedding_dim}, GCN layers: {num_gcn_layers}")
-    print(f"Use feature transformation in GCN layers: {use_feature_transform}")
+    print(f"Attempting to load data from: {base_filepath} (relative to project root)")
+    filepath = os.path.join(project_root, base_filepath)
+    if not os.path.exists(filepath):
+        print(f"Error: Data file not found at {filepath}.")
+        try:
+            from data.generate_dummy_data import generate_dummy_data
+            print("Attempting to generate dummy data...")
+            generate_dummy_data(num_users=50, num_items=30, num_interactions=500, generate_sequences=False)
+            print("Dummy data generation script executed.")
+        except Exception as e:
+            print(f"Error during dummy data generation: {e}")
+            return None
+        if not os.path.exists(filepath):
+            print(f"Error: Dummy data file still not found at {filepath} after generation.")
+            return None
 
-    # 모델 아키텍처 정의 (TensorFlow/Keras, PyTorch Geometric 등 사용)
-    # 입력: 노드 특징 행렬, 정규화된 인접 행렬 (또는 엣지 리스트)
-    # GCN 레이어: (A_hat * X * W) or (A_hat * ReLU(X * W)) 형태
-    # 출력: 사용자 및 아이템 임베딩
-    # 추천을 위한 최종 레이어: 임베딩 간의 내적 또는 MLP
+    df = pd.read_csv(filepath)
+    if df.empty:
+        print("Error: Data file is empty.")
+        return None
 
-    # model = ...
-    # model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate), loss='mean_squared_error') # 예시: 평점 예측
-    print("GCN Recommender model structure (to be implemented).")
-    return None # 실제 모델 반환 예정
+    user_encoder = LabelEncoder()
+    df['user_idx'] = user_encoder.fit_transform(df['user_id'])
+    item_encoder = LabelEncoder()
+    df['item_idx'] = item_encoder.fit_transform(df['item_id'])
 
-def train_gcn_recommender_model(model, interactions_df, num_users, num_items, epochs=10, batch_size=256):
+    num_users = df['user_idx'].nunique()
+    num_items = df['item_idx'].nunique()
+    num_total_nodes = num_users + num_items
+
+    print(f"Data loaded: {num_users} users, {num_items} items, {len(df)} interactions.")
+
+    # Placeholder for Adjacency Matrix (A) and Normalized Adjacency Matrix (A_hat)
+    # In a real implementation:
+    # 1. Construct sparse R (user-item interaction matrix).
+    # 2. Construct full adjacency A = [[0, R], [R.T, 0]].
+    # 3. Add self-loops: A_tilde = A + I.
+    # 4. Compute degree matrix D_tilde from A_tilde.
+    # 5. Compute normalized A_hat = D_tilde^(-0.5) * A_tilde * D_tilde^(-0.5).
+    # This A_hat would be a tf.sparse.SparseTensor.
+    print("Placeholder: Adjacency matrix construction and normalization (A_hat) would happen here.")
+    # For placeholder, create a dummy sparse tensor of the correct shape.
+    # This is NOT a valid normalized adjacency matrix for actual GCN operations.
+    dummy_adj_hat_placeholder = tf.sparse.from_dense(np.random.rand(num_total_nodes, num_total_nodes) > 0.8, name="dummy_A_hat")
+    dummy_adj_hat_placeholder = tf.cast(dummy_adj_hat_placeholder, dtype=tf.float32)
+
+
+    # Placeholder for Initial Node Features H^(0)
+    # Option 1: Learnable embeddings for users and items, then concatenate.
+    # Option 2: One-hot encoded IDs (very high-dimensional for large N).
+    # Option 3: If rich features exist, use them.
+    # For this placeholder, we'll assume learnable initial embeddings handled by the model's first layer,
+    # or one-hot like features if feature_dim is num_total_nodes.
+    # Or, just random features for placeholder.
+    print(f"Placeholder: Initial node feature matrix H0 (shape: ({num_total_nodes}, {EMBEDDING_DIM_INITIAL})) would be prepared here.")
+    initial_features_placeholder = np.random.rand(num_total_nodes, EMBEDDING_DIM_INITIAL).astype(np.float32)
+
+    return {
+        'df_interactions': df,
+        'user_encoder': user_encoder,
+        'item_encoder': item_encoder,
+        'num_users': num_users,
+        'num_items': num_items,
+        'num_total_nodes': num_total_nodes,
+        'normalized_adj_matrix_sp_ph': dummy_adj_hat_placeholder, # Placeholder
+        'initial_node_features_ph': initial_features_placeholder # Placeholder
+    }
+
+# --- GCN Model Components (Placeholders) ---
+class GCNLayerPlaceholder(tf.keras.layers.Layer):
     """
-    GCN 추천 모델을 학습합니다 (구현 예정).
+    Conceptual placeholder for a standard GCN layer.
+    H_out = activation( A_hat * H_in * W )
     """
-    if model is None:
-        print("Model is a placeholder. Skipping actual training.")
-        return
+    def __init__(self, output_dim, activation='relu', use_bias=True, kernel_regularizer=None, **kwargs):
+        super(GCNLayerPlaceholder, self).__init__(**kwargs)
+        self.output_dim = output_dim
+        self.activation_name = activation
+        self.use_bias = use_bias
+        self.kernel_regularizer = kernel_regularizer # Store for get_config
 
-    print(f"Training GCN Recommender model (placeholder)...")
-    print(f"Epochs: {epochs}, Batch size: {batch_size}")
+        # Weight matrix W for this layer
+        # self.kernel will be created in build() method
+        self.activation = tf.keras.layers.Activation(activation)
+        print(f"Placeholder GCNLayer initialized (output_dim={output_dim}, activation='{activation}').")
 
-    # 데이터 전처리:
-    # 1. 사용자-아이템 상호작용으로부터 전체 그래프의 인접 행렬 생성
-    #    (보통 (num_users + num_items) x (num_users + num_items) 크기)
-    # 2. 노드 특징 행렬 생성 (초기 특징이 없다면 ID를 원-핫 인코딩하거나 랜덤 초기화)
-    # 3. 인접 행렬 정규화 (예: D^-0.5 * A * D^-0.5)
-
-    # 학습 데이터 준비 (예: (사용자, 아이템) 쌍과 해당 평점)
-    # model.fit([node_features, adjacency_matrix_normalized], target_ratings, ...)
-    print("GCN Recommender model training complete (placeholder).")
-
-def make_recommendations_gcn(model, user_id, item_ids_to_predict, num_users, num_items, num_recommendations=5):
-    """
-    특정 사용자를 위한 추천을 생성합니다 (구현 예정).
-    """
-    if model is None:
-        print(f"Model is a placeholder. Generating dummy recommendations for user {user_id}.")
-        dummy_recs = [(item_id, np.random.rand()) for item_id in np.random.choice(item_ids_to_predict, min(num_recommendations, len(item_ids_to_predict)), replace=False)]
-        return dummy_recs
-
-    print(f"Making recommendations for user {user_id} using GCN Recommender (placeholder)...")
-    # 1. 학습된 모델로부터 모든 사용자 및 아이템 임베딩 추출
-    #    또는 특정 사용자-아이템 쌍에 대한 예측 수행
-    # 2. user_id에 해당하는 사용자 임베딩과 item_ids_to_predict에 해당하는 아이템 임베딩 간의 유사도(예: 내적) 계산
-    # 3. 유사도 점수가 높은 상위 N개 아이템 추천
-
-    # predictions = model.predict([node_features, adj_matrix_norm], user_item_pairs_to_predict)
-    print(f"Top {num_recommendations} recommendations generated (placeholder).")
-    return [] # 실제 추천 목록 반환 예정
-
-if __name__ == "__main__":
-    print("GCN (Graph Convolutional Network) for Recommendations Example Placeholder")
-    print("="*50)
-
-    # 1. 데이터 준비
-    interactions_df, NUM_USERS, NUM_ITEMS = generate_dummy_graph_data(num_users=20, num_items=10, num_interactions=50)
-    TOTAL_NODES = NUM_USERS + NUM_ITEMS
-    # 초기 특징: 간단하게 ID를 사용하거나, 더미 특징 생성. 실제로는 더 의미있는 특징 사용.
-    # 여기서는 각 노드가 고유 ID를 가짐을 가정하고, GCN 모델 내에서 이를 임베딩으로 처리한다고 가정.
-    # 또는 초기 특징 행렬을 (TOTAL_NODES, FEATURE_DIM) 형태로 제공.
-    # LightGCN처럼 특징 변환 없이 ID 임베딩만 사용하는 경우 feature_dim은 임베딩 차원과 같을 수 있음.
-    INITIAL_FEATURE_DIM = 1 # 예시로 각 노드가 단일 ID 값을 갖는다고 가정 (실제로는 임베딩 레이어에서 처리)
-
-    print("
-Sample Interaction Data (basis for graph):")
-    print(interactions_df.head())
-
-    # 2. 모델 구축 (구현 예정)
-    print("
-Building GCN Recommender Model...")
-    # 실제로는 feature_dim을 아이템/사용자 메타데이터 특징 차원 또는 초기 임베딩 차원으로 설정
-    gcn_model = build_gcn_recommender_model(
-        num_nodes=TOTAL_NODES,
-        feature_dim=INITIAL_FEATURE_DIM, # 초기 노드 특징의 차원. 없으면 원핫 ID의 차원.
-        embedding_dim=32, # GCN 후 최종 임베딩 차원
-        num_gcn_layers=2
-    )
-
-    # 3. 모델 학습 (구현 예정)
-    print("
-Training GCN Recommender Model...")
-    train_gcn_recommender_model(gcn_model, interactions_df, NUM_USERS, NUM_ITEMS, epochs=5)
-
-    # 4. 추천 생성 (구현 예정)
-    print("
-Generating Recommendations...")
-    SAMPLE_USER_ID = 0
-    # 추천 대상 아이템 목록 (예: 사용자가 아직 상호작용하지 않은 아이템들)
-    items_for_recommendation = list(range(NUM_ITEMS))
-
-    if NUM_USERS > 0 and NUM_ITEMS > 0:
-        recommendations = make_recommendations_gcn(
-            gcn_model,
-            user_id=SAMPLE_USER_ID,
-            item_ids_to_predict=items_for_recommendation,
-            num_users=NUM_USERS,
-            num_items=NUM_ITEMS,
-            num_recommendations=3
+    def build(self, input_shape):
+        # input_shape is a list: [features_shape, adj_matrix_shape]
+        # features_shape is (num_nodes, input_dim)
+        # We only need input_dim from features_shape for W.
+        feature_input_dim = input_shape[0][-1]
+        self.kernel = self.add_weight(
+            "kernel",
+            shape=[feature_input_dim, self.output_dim],
+            initializer="glorot_uniform", # Common GCN initialization
+            regularizer=self.kernel_regularizer,
+            trainable=True,
         )
-        if recommendations:
-            print(f"
-Top 3 recommendations for user {SAMPLE_USER_ID}:")
-            for item_id, score in recommendations:
-                print(f"Item ID: {item_id}, Predicted Score: {score:.4f}")
+        if self.use_bias:
+            self.bias = self.add_weight(
+                "bias", shape=[self.output_dim], initializer="zeros", trainable=True
+            )
+        super(GCNLayerPlaceholder, self).build(input_shape)
+
+
+    def call(self, inputs):
+        """
+        Conceptual call method for a GCN layer.
+        inputs: A list or tuple [node_features, normalized_adj_matrix_sp]
+                - node_features (H_in): Tensor of shape (num_nodes, input_feature_dim)
+                - normalized_adj_matrix_sp (A_hat): SparseTensor of shape (num_nodes, num_nodes)
+        """
+        node_features, normalized_adj_matrix_sp = inputs
+        print(f"  Placeholder GCNLayer.call(): Processing features...")
+
+        # 1. Transform features: H_in * W
+        transformed_features = tf.matmul(node_features, self.kernel) # (num_nodes, output_dim)
+
+        # 2. Aggregate neighbor features: A_hat * (H_in * W)
+        # This is the core graph convolution operation.
+        aggregated_features = tf.sparse.sparse_dense_matmul(normalized_adj_matrix_sp, transformed_features) # (num_nodes, output_dim)
+
+        if self.use_bias:
+            output = tf.add(aggregated_features, self.bias)
         else:
-            print(f"No recommendations generated for user {SAMPLE_USER_ID} (placeholder).")
+            output = aggregated_features
+
+        print(f"    -> Aggregated features shape: {output.shape}")
+        return self.activation(output)
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "output_dim": self.output_dim,
+            "activation": self.activation_name,
+            "use_bias": self.use_bias,
+            # "kernel_regularizer": tf.keras.regularizers.serialize(self.kernel_regularizer) # If needed
+        })
+        return config
+
+
+class GCNModelPlaceholder(tf.keras.Model):
+    """
+    Conceptual placeholder for a GCN-based recommendation model.
+    """
+    def __init__(self, num_users, num_items, initial_feature_dim,
+                 gcn_layer_units=GCN_LAYER_UNITS, final_embedding_dim=EMBEDDING_DIM_INITIAL, # final_embedding_dim is output of last GCN
+                 use_initial_embeddings=True, reg_emb=1e-5, reg_gcn=1e-5, **kwargs):
+        super(GCNModelPlaceholder, self).__init__(**kwargs)
+        self.num_users = num_users
+        self.num_items = num_items
+        self.use_initial_embeddings = use_initial_embeddings
+        self.final_embedding_dim = final_embedding_dim # Output dim of the last GCN layer
+
+        if self.use_initial_embeddings:
+            # Initial learnable embeddings for users and items (serves as H^(0) input features)
+            self.user_embedding_E0 = Embedding(num_users, initial_feature_dim, name="user_E0_embedding",
+                                               embeddings_regularizer=tf.keras.regularizers.l2(reg_emb))
+            self.item_embedding_E0 = Embedding(num_items, initial_feature_dim, name="item_E0_embedding",
+                                               embeddings_regularizer=tf.keras.regularizers.l2(reg_emb))
+            current_dim = initial_feature_dim
+        else:
+            # Assumes initial_feature_dim matches the dimension of externally provided features
+            current_dim = initial_feature_dim
+            print("  GCNModel using externally provided initial features (not ID embeddings).")
+
+
+        self.gcn_layers = []
+        for i, units in enumerate(gcn_layer_units):
+            self.gcn_layers.append(
+                GCNLayerPlaceholder(units, activation=ACTIVATION_GCN, use_bias=USE_BIAS_GCN,
+                                    kernel_regularizer=tf.keras.regularizers.l2(reg_gcn),
+                                    name=f"gcn_layer_{i+1}")
+            )
+            current_dim = units # Update current_dim for the next layer's input_dim (implicitly)
+
+        # Ensure the output dimension of the last GCN layer is final_embedding_dim
+        # This might require an additional Dense layer if GCN_LAYER_UNITS[-1] != final_embedding_dim
+        if current_dim != final_embedding_dim and gcn_layer_units: # if GCN layers exist and dim mismatch
+             self.final_transform_dense = Dense(final_embedding_dim, activation='linear', name="final_embedding_transform")
+             print(f"  Added final Dense layer to transform GCN output from {current_dim} to {final_embedding_dim}")
+        else:
+            self.final_transform_dense = None
+
+
+        print(f"Placeholder GCNModel initialized with {len(self.gcn_layers)} GCN layers.")
+        print(f"  Initial feature/embedding dim: {initial_feature_dim}, GCN layer units: {gcn_layer_units}")
+        print(f"  Final output embedding dimension after GCN stack (and potential final Dense): {final_embedding_dim}")
+
+
+    def call(self, inputs, training=False):
+        """
+        Conceptual forward pass.
+        inputs: A list/tuple.
+                If use_initial_embeddings=True: [user_indices_for_batch, item_indices_for_batch, normalized_adj_matrix]
+                                                (for interaction prediction)
+                                             OR [all_node_initial_features (from Emb), normalized_adj_matrix]
+                                                (for generating all embeddings)
+                If use_initial_embeddings=False: [initial_node_feature_matrix_X, normalized_adj_matrix_sp]
+        """
+        print(f"  Placeholder GCNModel.call(): Processing graph data...")
+
+        if self.use_initial_embeddings:
+            # This path is more for generating all embeddings or if inputs are specific user/item indices
+            # For generating all embeddings:
+            # user_E0 = self.user_embedding_E0(tf.range(self.num_users))
+            # item_E0 = self.item_embedding_E0(tf.range(self.num_items))
+            # H0 = tf.concat([user_E0, item_E0], axis=0)
+            # normalized_adj_matrix = inputs[1] # Assuming second input is adj matrix
+            # For BPR-style interaction prediction (more complex input handling needed for specific u,i,j):
+            # This placeholder call assumes H0 is pre-constructed and passed as first element.
+            H_current = inputs[0] # Expects H0 to be passed directly
+            normalized_adj_matrix = inputs[1]
+        else: # Using externally provided initial features
+            H_current = inputs[0] # initial_node_feature_matrix_X
+            normalized_adj_matrix = inputs[1]
+
+        for gcn_layer in self.gcn_layers:
+            H_current = gcn_layer([H_current, normalized_adj_matrix])
+            print(f"    -> Output shape after {gcn_layer.name}: {H_current.shape}")
+
+        final_node_embeddings = H_current
+        if self.final_transform_dense:
+            final_node_embeddings = self.final_transform_dense(final_node_embeddings)
+            print(f"    -> Output shape after final_transform_dense: {final_node_embeddings.shape}")
+
+        # For recommendation, split back into user and item embeddings
+        # final_user_embeddings = final_node_embeddings[:self.num_users, :]
+        # final_item_embeddings = final_node_embeddings[self.num_users:, :]
+
+        # If predicting interaction for specific user/item pairs (passed in inputs for BPR/rating pred):
+        # This part is highly dependent on how inputs are structured for training (e.g. BPR triplets)
+        # For this placeholder, we just return all node embeddings.
+        # A more complete model would have specific heads for prediction tasks.
+        print(f"  Placeholder GCNModel.call(): Final node embeddings computed (shape: {final_node_embeddings.shape}).")
+        return final_node_embeddings
+
+    def get_all_node_embeddings(self, initial_node_features, normalized_adj_matrix):
+        """Helper to get all node embeddings after GCN layers."""
+        print("Placeholder GCNModel.get_all_node_embeddings(): Propagating features...")
+        return self([initial_node_features, normalized_adj_matrix])
+
+
+# --- Main Execution Block ---
+if __name__ == "__main__":
+    print("GCN (Graph Convolutional Network) for Recommendations - Conceptual Outline")
+    print("="*70)
+    print("This script provides a conceptual overview and structural outline of a GCN model")
+    print("applied to recommendations. It is NOT a fully runnable or optimized implementation.")
+    print("Key aspects like detailed data preparation for graph operations (sparse matrix handling),")
+    print("efficient batching for GCNs, and specific training loops (e.g., for BPR loss)")
+    print("are simplified placeholders.")
+    print("Refer to the original GCN paper and specialized graph learning libraries for robust implementations.")
+    print("="*70 + "\n")
+
+    # 1. Load and preprocess data (conceptual)
+    print("Step 1: Loading and preprocessing data (conceptual)...")
+    data_dict = load_and_preprocess_gcn_data()
+
+    if data_dict:
+        num_users = data_dict['num_users']
+        num_items = data_dict['num_items']
+        num_total_nodes = data_dict['num_total_nodes']
+        # These are placeholders from `load_and_preprocess_gcn_data`
+        normalized_adj_matrix_placeholder = data_dict['normalized_adj_matrix_sp_ph']
+        initial_node_features_placeholder = data_dict['initial_node_features_ph']
+
+
+        # 2. Build GCN Model (placeholder structure)
+        print("\nStep 2: Building GCN Model structure (conceptual)...")
+        # Assuming initial features are provided (use_initial_embeddings=False for this conceptual path)
+        # If use_initial_embeddings=True, the model would internally create and concatenate ID embeddings.
+        gcn_model_placeholder = GCNModelPlaceholder(
+            num_users=num_users,
+            num_items=num_items,
+            initial_feature_dim=EMBEDDING_DIM_INITIAL, # Dim of `initial_node_features_placeholder`
+            gcn_layer_units=GCN_LAYER_UNITS,
+            final_embedding_dim=GCN_LAYER_UNITS[-1] if GCN_LAYER_UNITS else EMBEDDING_DIM_INITIAL, # Output of last GCN layer
+            use_initial_embeddings=False # For this flow, assume H0 is passed.
+        )
+        # Conceptual compilation (loss depends on task, e.g., BPR for ranking, MSE for rating)
+        # gcn_model_placeholder.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE), loss="some_loss")
+        print("Conceptual GCN model built.")
+        print("\nConceptual Model Structure:")
+        if gcn_model_placeholder.use_initial_embeddings:
+             print(f"  - Initial User Embeddings E0: (num_users, {EMBEDDING_DIM_INITIAL})")
+             print(f"  - Initial Item Embeddings E0: (num_items, {EMBEDDING_DIM_INITIAL})")
+             print(f"  - H0 (Concatenated E0): ({num_total_nodes}, {EMBEDDING_DIM_INITIAL})")
+        else:
+            print(f"  - H0 (External Initial Features): ({num_total_nodes}, {EMBEDDING_DIM_INITIAL})")
+
+        current_dim_for_desc = EMBEDDING_DIM_INITIAL
+        for i, units in enumerate(GCN_LAYER_UNITS):
+            print(f"  - GCN Layer {i+1}: Input ({current_dim_for_desc}-dim) -> Output ({units}-dim) features, Activation: {ACTIVATION_GCN}")
+            current_dim_for_desc = units
+        if gcn_model_placeholder.final_transform_dense:
+            print(f"  - Final Dense Transform: Input ({current_dim_for_desc}-dim) -> Output ({gcn_model_placeholder.final_embedding_dim}-dim) features")
+
+        # 3. Model Training (conceptual - full graph pass)
+        print("\nStep 3: Model Training (conceptual - full graph forward pass)...")
+        print(f"  (This would involve defining a loss, e.g., BPR or rating prediction loss,")
+        print(f"   and using model.fit() or a custom training loop.)")
+
+        # Conceptual forward pass to get all node embeddings
+        # In a real scenario, `initial_node_features_placeholder` would be the actual H0,
+        # and `normalized_adj_matrix_placeholder` the actual A_hat.
+        all_node_embeddings_conceptual = gcn_model_placeholder.get_all_node_embeddings(
+            initial_node_features_placeholder,
+            normalized_adj_matrix_placeholder
+        )
+        print(f"  Conceptual all_node_embeddings computed (shape: {all_node_embeddings_conceptual.shape}).")
+        print("  Skipping actual training for this placeholder script.")
+
+        # 4. Generate Recommendations (conceptual)
+        print("\nStep 4: Generating Recommendations (conceptual)...")
+        if num_users > 0 and num_items > 0:
+            # Extract final user and item embeddings
+            final_user_embeddings_conceptual = all_node_embeddings_conceptual[:num_users, :]
+            final_item_embeddings_conceptual = all_node_embeddings_conceptual[num_users:, :]
+            print(f"  Conceptual final user embeddings shape: {final_user_embeddings_conceptual.shape}")
+            print(f"  Conceptual final item embeddings shape: {final_item_embeddings_conceptual.shape}")
+
+            sample_user_idx = 0 # Example: for the first user
+            print(f"  (Conceptual: For user_idx {sample_user_idx}, take their embedding,")
+            print(f"   compute dot products with all item embeddings, and rank.)")
+            # user_u_emb = final_user_embeddings_conceptual[sample_user_idx, :]
+            # scores = tf.linalg.matvec(final_item_embeddings_conceptual, user_u_emb) # item_embs @ user_emb
+            # top_k_items = tf.math.top_k(scores, k=5)
+            print(f"  (Skipping actual recommendation ranking for this placeholder script.)")
+        else:
+            print("  No users/items in dummy data to generate example recommendations for.")
+
     else:
-        print("Not enough users/items in dummy data for recommendations.")
+        print("\nData loading placeholder failed. Cannot proceed with GCN conceptual outline.")
 
-
-    print("
-" + "="*50)
-    print("Note: This is a placeholder script. Full GCN implementation for recommendations is pending.")
-    print("Standard GCN can be more general than LightGCN by including feature transformations and non-linearities.")
+    print("\n" + "="*70)
+    print("GCN for Recommendations Conceptual Outline Example Finished.")
+    print("Reminder: This is a structural guide, not a working implementation.")
+    print("="*70)

@@ -3,182 +3,239 @@ import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import os
+import sys
 
 # --- Item-Based Collaborative Filtering: Basic Explanation ---
-# Item-Based Collaborative Filtering (IBCF) is a recommendation algorithm that suggests items to a user
-# based on the similarity between items. The core idea is: "Users who liked this item also liked...".
+# Item-Based Collaborative Filtering (IBCF) recommends items to a user based on the similarity
+# between items the user has previously interacted with and other items.
+# The core idea: "If a user liked item X, and item X is similar to item Y, then the user might also like item Y."
 #
 # How it works:
-# 1. Build a User-Item Interaction Matrix: This matrix represents users' interactions with items
-#    (e.g., ratings, purchases, views). Rows are typically users, and columns are items.
-# 2. Calculate Item-Item Similarity: Compute how similar items are to each other.
-#    A common method is to treat each item as a vector of ratings given by users and then
-#    calculate the cosine similarity between these item vectors.
-# 3. Generate Recommendations: To recommend items for a user:
-#    a. Find items the user has positively interacted with in the past.
-#    b. For each of these items, find the most similar items (based on the item-item similarity matrix).
-#    c. Aggregate these similar items, possibly weighting them by similarity and the user's rating
-#       for the source item, to produce a ranked list of recommendations.
+# 1. Build a User-Item Interaction Matrix: Represents users' interactions (e.g., ratings) with items.
+#    Rows are users, columns are items. This is the same matrix as in User-Based CF.
+# 2. Calculate Item-Item Similarity: Compute similarity between all pairs of items.
+#    This is typically done by creating item vectors (columns from the user-item matrix, possibly after transposing)
+#    and calculating cosine similarity between these vectors. An item's vector represents how it's rated by all users.
+#    The result is an item-item similarity matrix.
+# 3. Generate Recommendations for a User:
+#    a. Identify items the target user has positively rated or interacted with.
+#    b. For each unrated item (candidate item for recommendation):
+#       i. Calculate a predicted score. This is often a weighted sum of the user's ratings for their interacted items.
+#       ii. The weight for each rated item is its similarity to the candidate item.
+#       iii. Formula for predicted score for item 'j' for user 'u':
+#           P(u,j) = sum( S(j,k) * R(u,k) ) / sum( |S(j,k)| )
+#           where:
+#             - S(j,k) is the similarity between item 'j' (candidate) and item 'k' (rated by user).
+#             - R(u,k) is the rating user 'u' gave to item 'k'.
+#             - The sum is over all items 'k' rated by user 'u'.
+#    c. Rank candidate items by their predicted scores and recommend the top N.
 #    d. Filter out items the user has already interacted with.
 #
 # Pros:
-# - Stability: Item similarities tend to change less frequently than user preferences,
-#   so the similarity matrix doesn't need to be recomputed as often as in User-Based CF.
-# - Explainability: Recommendations can be explained (e.g., "Because you liked item X, you might like item Y").
-# - Handles new users reasonably well if they rate a few items.
+# - Stability: Item similarities often change less frequently than user-user similarities,
+#   meaning the item-item similarity matrix can be pre-computed and updated less often.
+#   This is beneficial if the item catalog is more static than the user base or user preferences.
+# - Scalability for User Base: More scalable when the number of users is much larger than the number of items,
+#   as the expensive similarity calculation is on items.
+# - Explainability: Recommendations can be easily explained (e.g., "Because you liked Item X, you might like Item Y, which is similar to X").
+# - Handles New Users: New users who rate even a few items can get decent recommendations if those items have known similarities.
 #
 # Cons:
-# - Data Sparsity: Performance can degrade if the user-item matrix is very sparse, as it becomes
-#   hard to find overlapping user ratings to calculate item similarity.
-# - Scalability of Similarity Calculation: Computing item-item similarity can be computationally
-#   expensive (O(N^2 * U) where N is number of items, U is number of users) for very large item catalogs.
-#   Efficient implementations (e.g., using sparse matrices or approximation techniques like LSH) are needed.
-# - Popularity Bias: Tends to recommend popular items more frequently.
-# - Cold-Start for New Items: New items with no interactions cannot be recommended as their similarity
-#   to other items cannot be calculated.
+# - Data Sparsity: If the user-item matrix is very sparse, it's hard to find users who have rated the same pairs of items,
+#   making item similarity calculations less reliable.
+# - Scalability of Similarity Calculation (for items): Computing item-item similarity can be computationally
+#   expensive if the number of items (I) is very large. For I items and U users, it's typically O(I^2 * U)
+#   for dense data or O(I^2 * avg_users_rated_per_item) for sparse data.
+# - Popularity Bias: May tend to recommend popular items, similar to UBCF.
+# - Cold-Start for New Items: Cannot recommend new items that have no interaction data, as their similarity
+#   to other items cannot be determined.
+# - Limited Serendipity: May recommend items too similar to what the user already knows, potentially reducing discovery of novel items.
 # ---
 
-# 1. 데이터 로드 및 전처리 (Big O: 로딩 O(N_interactions), 밀집 행렬 변환 O(U*I), 여기서 U=사용자 수, I=아이템 수)
+# Dynamically add project root to sys.path for module imports
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+# 1. Data Loading and Preprocessing
+# Time Complexity:
+# - Reading CSV: O(N_interactions)
+# - Pivot table & fillna: O(N_interactions + U*I)
+# Overall: Roughly O(N_interactions + U*I).
 def load_and_preprocess_data(filepath='data/dummy_interactions.csv'):
     """
-    상호작용 데이터를 로드하고 사용자-아이템 행렬로 변환합니다.
+    Loads interaction data and transforms it into a user-item matrix.
+    Attempts to generate dummy data if the specified file is not found.
     """
-    if not os.path.exists(filepath):
-        print(f"오류: {filepath} 파일을 찾을 수 없습니다. 'data/generate_dummy_data.py'를 먼저 실행해 주십시오.")
-        # Try to generate dummy data if not found, specifically if the target is our known dummy file
-        if filepath.endswith('data/dummy_interactions.csv'):
-            print("더미 데이터 생성 시도 중...")
+    abs_filepath = filepath
+    if not os.path.isabs(filepath) and filepath.startswith('data/'):
+        abs_filepath = os.path.join(project_root, filepath)
+
+    if not os.path.exists(abs_filepath):
+        print(f"Error: Data file not found at {abs_filepath}.")
+        if abs_filepath.endswith('data/dummy_interactions.csv'):
+            print("Attempting to generate dummy data...")
             try:
-                import sys
-                # os is already imported at the module level
-                project_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-                # Explicitly add project root to sys.path
-                if project_root_dir not in sys.path:
-                    sys.path.insert(0, project_root_dir)
-
                 from data.generate_dummy_data import generate_dummy_data
                 generate_dummy_data()
-                print("더미 데이터 생성 완료.")
-                # Ensure the file now exists
-                if not os.path.exists(filepath):
-                    print(f"자동 데이터 생성 후에도 {filepath}를 찾을 수 없습니다.")
+                print("Dummy data generated successfully.")
+                if not os.path.exists(abs_filepath):
+                    print(f"Error: Dummy data generation ran, but file still not found at {abs_filepath}.")
                     return None
-            except ImportError as e:
-                print(f"ImportError: 'generate_dummy_data' 함수를 임포트할 수 없습니다. 경로 문제일 수 있습니다: {e}")
-                print("PYTHONPATH를 확인하거나 프로젝트 루트에서 스크립트를 실행해 주십시오.")
+            except ImportError as e_import:
+                print(f"ImportError: Failed to import 'generate_dummy_data'. Project root: {project_root}, sys.path: {sys.path}. Error: {e_import}")
                 return None
-            except Exception as e:
-                print(f"더미 데이터 생성 실패: {e}")
+            except Exception as e_general:
+                print(f"Error generating dummy data: {e_general}")
                 return None
         else:
-            return None # Cannot generate other files
+            return None
 
-    df = pd.read_csv(filepath)
-    # Pivot 테이블을 사용하여 사용자-아이템 행렬 생성
-    # 상호작용이 없는 경우 0으로 채워 넣습니다. (실제로는 평균 평점 등으로 채울 수도 있음)
+    df = pd.read_csv(abs_filepath)
+    # Pivot to create user-item matrix (users as rows, items as columns, ratings as values)
+    # Fill missing interactions with 0 (neutral or no interaction)
     user_item_matrix = df.pivot_table(index='user_id', columns='item_id', values='rating').fillna(0)
     return user_item_matrix
 
-# 2. 아이템 간 유사도 계산 (Big O: O(I^2 * U) for dense matrix, 여기서 I=아이템 수, U=사용자 수)
-# scikit-learn의 cosine_similarity는 효율적으로 구현되어 있지만, 아이템 수가 매우 많을 경우 여전히 병목이 될 수 있습니다.
-# 대규모 시스템에서는 희소 행렬 라이브러리(scipy.sparse) 또는 근사 최근접 이웃(ANN) 알고리즘을 고려해야 합니다.
+# 2. Item Similarity Calculation
+# Time Complexity: O(I^2 * U), where I is the number of items and U is the number of users.
+# user_item_matrix.T transposes the matrix to (I x U).
+# cosine_similarity then computes similarities between all pairs of I items,
+# where each item's vector has length U.
 def calculate_item_similarity(user_item_matrix):
     """
-    아이템 간의 코사인 유사도를 계산합니다. (아이템이 열에 있도록 전치하여 계산)
+    Calculates cosine similarity between items based on user ratings.
     """
-    # 아이템을 행으로, 사용자를 열로 만들어 각 아이템 벡터 간 유사도 계산
-    item_similarity_matrix = cosine_similarity(user_item_matrix.T)
+    # Transpose the matrix so items are rows and users are columns (I x U)
+    # This allows cosine_similarity to compute similarities between item vectors.
+    item_user_matrix = user_item_matrix.T
+    item_similarity_matrix = cosine_similarity(item_user_matrix)
+    # Convert to DataFrame for easier use, with item_ids as index and columns
     item_similarity_df = pd.DataFrame(item_similarity_matrix,
-                                      index=user_item_matrix.columns,
-                                      columns=user_item_matrix.columns)
+                                      index=user_item_matrix.columns, # Original item_ids
+                                      columns=user_item_matrix.columns) # Original item_ids
     return item_similarity_df
 
-# 3. 아이템 기반 협업 필터링 추천
-# (Big O: 특정 사용자에 대해 O(I_rated * I_all), 여기서 I_rated는 사용자가 평가한 아이템 수, I_all은 전체 아이템 수)
-# 최적화 가능: 모든 unrated item에 대해 계산하는 대신, 사용자가 평가한 아이템과 유사한 아이템들만 고려.
+# 3. Item-Based Collaborative Filtering Recommendations
+# Time Complexity for a single user:
+# - Get user's rated items: O(I)
+# - Iterate through unrated items (I_unrated, worst case I):
+#   - For each unrated item, iterate through user's rated items (I_rated):
+#     - Look up similarity: O(1) (DataFrame lookup)
+#     - Perform calculations.
+# - Sorting recommendations: O(M log M) where M is number of candidate items (I_unrated).
+# Overall: Roughly O(I_unrated * I_rated + M log M).
+# If I_rated is small, this is more efficient than iterating all I items for similarity.
 def get_item_based_recommendations(user_id, user_item_matrix, item_similarity_df, num_recommendations=5):
     """
-    특정 사용자에게 아이템 기반 협업 필터링을 사용하여 아이템을 추천합니다.
+    Generates item recommendations for a target user using Item-Based Collaborative Filtering.
     """
     if user_id not in user_item_matrix.index:
-        print(f"사용자 ID {user_id}가 데이터에 없습니다.")
+        print(f"Error: User ID {user_id} not found in the data.")
         return []
 
-    # 사용자가 평가한 아이템 목록 (평점 > 0)
-    user_ratings = user_item_matrix.loc[user_id]
-    rated_items_with_ratings = user_ratings[user_ratings > 0]
-    rated_items = rated_items_with_ratings.index
+    # Get the ratings provided by the target user
+    user_ratings_series = user_item_matrix.loc[user_id]
+    # Filter for items the user has positively rated (rating > 0)
+    rated_items_with_scores = user_ratings_series[user_ratings_series > 0]
+    rated_item_ids = rated_items_with_scores.index
 
-    # 아직 평가하지 않은 아이템 목록
-    all_items = user_item_matrix.columns
-    unrated_items = all_items.difference(rated_items)
+    # Identify items the user has not yet rated
+    all_item_ids = user_item_matrix.columns
+    unrated_item_ids = all_item_ids.difference(rated_item_ids)
 
-    # 추천 점수를 저장할 딕셔너리
+    if not rated_item_ids.tolist(): # Handle case where user has no rated items
+        print(f"User {user_id} has no rated items. Cannot generate item-based recommendations.")
+        return []
+
+    if not unrated_item_ids.tolist(): # Handle case where user has rated all items
+        print(f"User {user_id} has rated all available items. No new recommendations to generate.")
+        return []
+
+    # Dictionary to store the predicted scores for unrated items
     recommendation_scores = {}
 
-    # 평가하지 않은 각 아이템에 대해 예상 평점 계산
-    for item_to_recommend in unrated_items:
+    # For each item the user has not rated
+    for item_to_predict_score_for in unrated_item_ids:
         weighted_sum_of_ratings = 0
-        sum_of_similarities = 0
+        sum_of_similarity_scores = 0
 
-        # 사용자가 평가한 각 아이템과 현재 추천 후보 아이템 간의 유사도 활용
-        for rated_item in rated_items:
-            similarity = item_similarity_df.loc[item_to_recommend, rated_item]
-            rating = rated_items_with_ratings.loc[rated_item]
+        # For each item the user has already rated
+        for previously_rated_item_id in rated_item_ids:
+            # Get the similarity between the item we want to predict and the item already rated by the user
+            similarity = item_similarity_df.loc[item_to_predict_score_for, previously_rated_item_id]
 
+            # Consider only positive similarities
             if similarity > 0:
-                weighted_sum_of_ratings += similarity * rating
-                sum_of_similarities += similarity
+                # Get the rating the user gave to the already-rated item
+                rating_for_previously_rated_item = rated_items_with_scores.loc[previously_rated_item_id]
 
-        if sum_of_similarities > 0:
-            predicted_rating = weighted_sum_of_ratings / sum_of_similarities
-            recommendation_scores[item_to_recommend] = predicted_rating
+                # Add to the weighted sum: similarity * user's rating for the similar item
+                weighted_sum_of_ratings += similarity * rating_for_previously_rated_item
+                # Add to the sum of similarities (for the denominator of weighted average)
+                sum_of_similarity_scores += similarity
 
-    # 예측 평점이 높은 순으로 정렬하여 추천 목록 반환
+        # Calculate the predicted score if there were similar items
+        if sum_of_similarity_scores > 0:
+            predicted_score = weighted_sum_of_ratings / sum_of_similarity_scores
+            recommendation_scores[item_to_predict_score_for] = predicted_score
+
+    # Sort the unrated items by their predicted scores in descending order
     sorted_recommendations = sorted(recommendation_scores.items(), key=lambda x: x[1], reverse=True)
+
     return sorted_recommendations[:num_recommendations]
 
-# 메인 실행 함수
+# Main execution block
 if __name__ == "__main__":
-    print("--- 아이템 기반 협업 필터링 예제 시작 ---")
+    print("--- Item-Based Collaborative Filtering Example ---")
 
-    # 1. 데이터 로드 및 전처리
-    # Adjust the path to dummy_interactions.csv relative to the project root
-    # Assuming this script is in examples/collaborative_filtering
-    # __file__ is examples/collaborative_filtering/item_cf_example.py
-    # project_root is /app
-    project_root_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    data_file_path = os.path.join(project_root_path, 'data', 'dummy_interactions.csv') # Correctly /app/data/dummy_interactions.csv
-
-    print(f"\n데이터 로드 및 전처리 중 (경로: {data_file_path})...")
-    # Pass the absolute path to load_and_preprocess_data
+    data_file_path = 'data/dummy_interactions.csv' # Path relative to project root
+    print(f"\nLoading and preprocessing data from: {data_file_path}...")
     user_item_matrix = load_and_preprocess_data(filepath=data_file_path)
 
-    if user_item_matrix is not None:
-        print("사용자-아이템 행렬 (일부):\n", user_item_matrix.head())
+    if user_item_matrix is not None and not user_item_matrix.empty:
+        print("\nUser-Item Matrix (first 5 rows/users):")
+        print(user_item_matrix.head())
 
-        # 2. 아이템 유사도 계산
-        print("\n아이템 유사도 계산 중... (아이템 수에 따라 시간이 소요될 수 있습니다.)")
+        print("\nCalculating Item Similarity Matrix... (this may take a while for many items)")
         item_similarity_df = calculate_item_similarity(user_item_matrix)
-        print("아이템 유사도 행렬 (일부):\n", item_similarity_df.iloc[:5, :5])
+        print("\nItem Similarity Matrix (first 5x5 items):")
+        display_limit = min(5, item_similarity_df.shape[0])
+        print(item_similarity_df.iloc[:display_limit, :display_limit])
 
-        # 3. 특정 사용자에 대한 추천 생성
         if not user_item_matrix.empty:
-            # 예시로 첫 번째 사용자 ID를 선택합니다.
-            target_user_id = user_item_matrix.index[0]
-            print(f"\n사용자 ID {target_user_id}에 대한 추천 아이템 생성 중...")
-            recommendations = get_item_based_recommendations(target_user_id, user_item_matrix, item_similarity_df, num_recommendations=5)
+            target_user_id = user_item_matrix.index[0] # Example: use the first user
+
+            # Check if the target user has rated any items for more meaningful recommendations
+            if user_item_matrix.loc[target_user_id].sum() == 0:
+                print(f"\nWarning: Target user ID {target_user_id} has no rated items in the matrix. "
+                      "Recommendations might be less meaningful or empty.")
+                # Attempt to find a user with some ratings for a better demonstration
+                for uid in user_item_matrix.index:
+                    if user_item_matrix.loc[uid].sum() > 0:
+                        target_user_id = uid
+                        print(f"Switching to user ID {target_user_id} for a better demo as they have rated items.")
+                        break
+
+            print(f"\nGenerating recommendations for User ID: {target_user_id}...")
+            recommendations = get_item_based_recommendations(
+                target_user_id,
+                user_item_matrix,
+                item_similarity_df,
+                num_recommendations=5
+            )
 
             if recommendations:
-                print(f"\n사용자 {target_user_id}를 위한 추천 아이템 목록:")
-                for item, score in recommendations:
-                    print(f"- 아이템 {item}: 예상 평점 {score:.2f}")
+                print(f"\nTop {len(recommendations)} recommendations for User {target_user_id}:")
+                for item_id, score in recommendations:
+                    print(f"- Item ID: {item_id}, Predicted Score: {score:.4f}")
             else:
-                print("추천할 아이템이 없습니다. (모든 아이템을 이미 평가했거나 유사한 아이템이 존재하지 않을 수 있습니다.)")
+                print(f"No recommendations could be generated for User {target_user_id}. "
+                      "This could be because the user has rated all items, no rated items, "
+                      "or no similar items were found for the unrated items.")
         else:
-            print("\n사용자-아이템 행렬이 비어있어 추천을 생성할 수 없습니다.")
+            print("\nUser-Item matrix is empty. Cannot generate recommendations.")
     else:
-        print("\n데이터 로드에 실패하여 예제를 실행할 수 없습니다.")
+        print("\nData loading failed or resulted in an empty matrix. Cannot proceed with the example.")
 
-    print("\n--- 아이템 기반 협업 필터링 예제 실행 완료 ---")
+    print("\n--- Item-Based Collaborative Filtering Example Finished ---")
