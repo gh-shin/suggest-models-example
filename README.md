@@ -13,7 +13,7 @@
         * [콘텐츠 기반 필터링 (TF-IDF)](#콘텐츠-기반-필터링-tf-idf-예제)
         * [딥러닝 기반 추천 (DNN with Embeddings)](#딥러닝-기반-추천-dnn-with-embeddings-예제)
         * [SASRec (Self-Attentive Sequential Recommendation)](#sasrec-self-attentive-sequential-recommendation-예제)
-        * [Two-Tower Hybrid Recommendation](#two-tower-hybrid-recommendation-예제)
+        * [투 타워 하이브리드 추천 (Two-Tower Hybrid Recommendation)](#투-타워-하이브리드-추천-two-tower-hybrid-recommendation-예제)
         * [LightGCN (Light Graph Convolution Network - TensorFlow/Keras)](#lightgcn-light-graph-convolution-network---tensorflowkeras-예제)
     4. [문서화 및 `README.md` 업데이트](#4-문서화-및-readmemd-업데이트) (본 문서)
     5. [테스트](#5-테스트)
@@ -27,7 +27,7 @@
 본 저장소는 다양한 인공지능(AI) 기반 추천 모델의 예시 코드와 활용 사례를 제공합니다. 본 프로젝트의 궁극적인 목표는 사용자가 추천 시스템의 기본 원리를 심층적으로 이해하고, 실제 프로젝트에 효율적으로 적용할 수 있도록 지원하는 것입니다. 특히, 파이썬 데이터 엔지니어는 모델 학습, 예측, 평가 등 일련의 과정을 명확하고 실용적인 예제를 통해 직관적으로 경험할 수 있도록 설계되었습니다.
 
 ### 학습 경로 안내 (Learning Path Guide)
-추천 모델 학습을 처음 시작하시는 분들은 본 저장소의 핵심 가이드인 [학습 경로 안내 (LearningPath.md)](./LearningPath.md) 문서를 먼저 참고하시는 것을 강력히 권장합니다. 이 문서는 추천 시스템의 기본 개념부터 다양한 모델 예제들을 단계별로 학습할 수 있도록 구성되어 있습니다.
+추천 모델 학습을 처음 시작하시는 분들은 본 저장소의 핵심 가이드인 [학습 경로 안내 (LearningPath.md)](./LearningPath.md) 문서를 먼저 참고하시는 것을 강력히 권장합니다. 이 문서는 추천 시스템의 기본 개념부터 다양한 모델 예제들을 단계별로 학습할 수 있도록 구성되어 있으며, 이해를 돕기 위한 다이어그램도 포함되어 있습니다.
 
 ### 파이썬 데이터 엔지니어를 위한 지침
 본 프로젝트의 핵심 목표는 다음과 같습니다:
@@ -130,7 +130,7 @@ scipy
 *   **모델:** 임베딩과 Dense 레이어를 사용한 심층 신경망 (DNN) - TensorFlow/Keras 사용
 *   **목적:** 사용자 ID와 아이템 ID를 임베딩 벡터로 변환 후 DNN을 통과시켜 평점을 예측하고 추천합니다.
 *   **실행 방법:** `python examples/deep_learning/dnn_recommender.py`
-*   **예상 출력:** 모델 구조, 학습 과정, 평가 결과 (Loss, MAE), 샘플 사용자에 대한 추천 아이템 및 예측 평점을 출력합니다.
+*   **예상 출력:** 모델 구조, 학습 과정, 평가 결과 (손실, MAE), 샘플 사용자에 대한 추천 아이템 및 예측 평점을 출력합니다.
 *   **모델 개요:**
     *   *장점:* 풍부한 특징 표현 자동 학습, 비선형 관계 포착, 추가 특징 통합 용이.
     *   *단점:* 복잡성, 긴 학습 시간, 많은 데이터 요구, 해석 어려움, 콜드 스타트.
@@ -151,7 +151,7 @@ scipy
 *   **참고:** 자세한 설명은 스크립트 내 주석을 참고하십시오.
 
 ---
-##### Two-Tower Hybrid Recommendation 예제
+##### 투 타워 하이브리드 추천 (Two-Tower Hybrid Recommendation) 예제
 *   **파일:** `examples/hybrid/two_tower_hybrid_example.py`
 *   **모델:** 사용자 타워와 아이템 타워로 구성된 투-타워 하이브리드 추천 모델 - TensorFlow/Keras 사용
 *   **목적:** 사용자 정보(ID)와 아이템 정보(ID 및 장르)를 각각의 타워에서 임베딩으로 처리한 후, 두 임베딩 간의 유사도(점곱)를 통해 사용자-아이템 간의 상호작용을 예측하고 추천하는 모델을 시연합니다. 아이템 타워는 아이템 ID와 장르 정보를 모두 활용합니다.
@@ -274,7 +274,7 @@ pytest -v
 ### 저장소 디렉토리 구조
 ```
 ├── README.md                 # 현재 파일
-├── requirements.txt          # Python 의존성 목록
+├── requirements.txt          # 파이썬 의존성 목록
 ├── data/                     # 데이터셋 저장 디렉토리
 │   ├── dummy_interactions.csv  # (자동 생성됨) 사용자-아이템 상호작용 더미 데이터
 │   ├── dummy_item_metadata.csv # (자동 생성됨) 아이템 메타데이터 더미 데이터
