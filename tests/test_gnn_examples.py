@@ -84,29 +84,29 @@ def test_run_lightgcn_tf_example():
 def test_run_ngcf_example():
     _run_script_test(
         "examples/gnn/ngcf_example.py",
-        "Note: This is a placeholder script. Full NGCF implementation is pending."
+        "NGCF (Neural Graph Collaborative Filtering) Example - Conceptual Outline" # Updated string
     )
 
 def test_run_pinsage_example():
     _run_script_test(
         "examples/gnn/pinsage_example.py",
-        "Note: This is a placeholder script. Full PinSage implementation is pending."
+        "PinSage (Graph Convolutional Neural Networks for Web-Scale RecSys) - Conceptual Outline" # Updated string
     )
 
 def test_run_gcn_example():
     _run_script_test(
         "examples/gnn/gcn_example.py",
-        "Note: This is a placeholder script. Full GCN implementation for recommendations is pending."
+        "GCN (Graph Convolutional Network) for Recommendations - Conceptual Outline" # Updated string
     )
 
 def test_run_graphsage_example():
     _run_script_test(
         "examples/gnn/graphsage_example.py",
-        "Note: This is a placeholder script. Full GraphSAGE implementation for recommendations is pending."
+        "GraphSAGE (Inductive Representation Learning on Large Graphs) - Conceptual Outline" # Updated string
     )
 
 def test_run_gat_example():
     _run_script_test(
         "examples/gnn/gat_example.py",
-        "Note: This is a placeholder script. Full GAT implementation for recommendations is pending."
+        "GAT (Graph Attention Network) for Recommendations - Conceptual Outline" # Updated string
     )

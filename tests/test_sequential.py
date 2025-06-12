@@ -54,7 +54,7 @@ def test_run_transformer_sasrec_example():
     assert process.returncode == 0, f"Script {script_path_rel} failed with error code {process.returncode}.\nStderr:\n{process.stderr}"
     assert len(process.stdout) > 0, f"Script {script_path_rel} produced no stdout output."
 
-    assert "SASRec 예제 실행 완료" in process.stdout, \
+    assert "SASRec Sequential Recommendation Model example execution complete" in process.stdout, \
         f"Script {script_path_rel} did not contain specific completion message in stdout.\nStdout:\n{process.stdout}"
 
     generic_keywords_present = (

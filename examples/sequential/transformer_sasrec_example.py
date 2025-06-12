@@ -530,4 +530,4 @@ if __name__ == "__main__":
     else:
         print("\nData loading failed. Cannot proceed with the SASRec example.")
 
-    print("\n--- SASRec Example Finished ---")
+    print("\n--- SASRec Sequential Recommendation Model example execution complete ---")
