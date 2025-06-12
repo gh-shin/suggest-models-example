@@ -4,3 +4,6 @@ numpy==1.26.4
 surprise
 tensorflow
 pytest
+scipy
+torch
+torch-geometric
