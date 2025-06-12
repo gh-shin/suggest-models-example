@@ -1,9 +1,9 @@
-pandas
-scikit-learn
+pandas>=1.3.0,<2.3
+scikit-learn>=1.0,<1.5
 numpy==1.26.4
 surprise
-tensorflow
-pytest
-scipy
+tensorflow>=2.10,<2.17
+pytest>=7.0,<8.5
+scipy>=1.7,<1.14
 torch
 torch-geometric
