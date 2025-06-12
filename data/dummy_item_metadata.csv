@@ -1,0 +1,101 @@
+item_id,genres,description
+1,genreA;genreC,"This is a description for item 1 belonging to genres genreA, genreC."
+2,genreA,This is a description for item 2 belonging to genres genreA.
+3,genreE;genreA,"This is a description for item 3 belonging to genres genreE, genreA."
+4,genreA;genreC,"This is a description for item 4 belonging to genres genreA, genreC."
+5,genreC;genreE;genreA,"This is a description for item 5 belonging to genres genreC, genreE, genreA."
+6,genreE,This is a description for item 6 belonging to genres genreE.
+7,genreC,This is a description for item 7 belonging to genres genreC.
+8,genreB;genreC;genreA,"This is a description for item 8 belonging to genres genreB, genreC, genreA."
+9,genreE;genreD,"This is a description for item 9 belonging to genres genreE, genreD."
+10,genreD,This is a description for item 10 belonging to genres genreD.
+11,genreE,This is a description for item 11 belonging to genres genreE.
+12,genreD;genreC;genreB,"This is a description for item 12 belonging to genres genreD, genreC, genreB."
+13,genreA;genreD;genreC,"This is a description for item 13 belonging to genres genreA, genreD, genreC."
+14,genreB,This is a description for item 14 belonging to genres genreB.
+15,genreE;genreA;genreD,"This is a description for item 15 belonging to genres genreE, genreA, genreD."
+16,genreE;genreD,"This is a description for item 16 belonging to genres genreE, genreD."
+17,genreB,This is a description for item 17 belonging to genres genreB.
+18,genreA,This is a description for item 18 belonging to genres genreA.
+19,genreC;genreA,"This is a description for item 19 belonging to genres genreC, genreA."
+20,genreA;genreC,"This is a description for item 20 belonging to genres genreA, genreC."
+21,genreD;genreC,"This is a description for item 21 belonging to genres genreD, genreC."
+22,genreC;genreA,"This is a description for item 22 belonging to genres genreC, genreA."
+23,genreA;genreD;genreB,"This is a description for item 23 belonging to genres genreA, genreD, genreB."
+24,genreD,This is a description for item 24 belonging to genres genreD.
+25,genreE;genreD;genreA,"This is a description for item 25 belonging to genres genreE, genreD, genreA."
+26,genreB;genreD,"This is a description for item 26 belonging to genres genreB, genreD."
+27,genreE;genreA;genreD,"This is a description for item 27 belonging to genres genreE, genreA, genreD."
+28,genreA;genreE,"This is a description for item 28 belonging to genres genreA, genreE."
+29,genreD,This is a description for item 29 belonging to genres genreD.
+30,genreC,This is a description for item 30 belonging to genres genreC.
+31,genreA;genreE,"This is a description for item 31 belonging to genres genreA, genreE."
+32,genreB;genreC;genreA,"This is a description for item 32 belonging to genres genreB, genreC, genreA."
+33,genreD;genreB;genreC,"This is a description for item 33 belonging to genres genreD, genreB, genreC."
+34,genreB;genreC;genreE,"This is a description for item 34 belonging to genres genreB, genreC, genreE."
+35,genreE;genreC;genreB,"This is a description for item 35 belonging to genres genreE, genreC, genreB."
+36,genreB;genreA,"This is a description for item 36 belonging to genres genreB, genreA."
+37,genreC;genreA,"This is a description for item 37 belonging to genres genreC, genreA."
+38,genreE;genreC;genreA,"This is a description for item 38 belonging to genres genreE, genreC, genreA."
+39,genreA;genreE,"This is a description for item 39 belonging to genres genreA, genreE."
+40,genreE,This is a description for item 40 belonging to genres genreE.
+41,genreA;genreB,"This is a description for item 41 belonging to genres genreA, genreB."
+42,genreE;genreC;genreA,"This is a description for item 42 belonging to genres genreE, genreC, genreA."
+43,genreE;genreA,"This is a description for item 43 belonging to genres genreE, genreA."
+44,genreD;genreA;genreB,"This is a description for item 44 belonging to genres genreD, genreA, genreB."
+45,genreC,This is a description for item 45 belonging to genres genreC.
+46,genreA,This is a description for item 46 belonging to genres genreA.
+47,genreE;genreA,"This is a description for item 47 belonging to genres genreE, genreA."
+48,genreC;genreD,"This is a description for item 48 belonging to genres genreC, genreD."
+49,genreB;genreE,"This is a description for item 49 belonging to genres genreB, genreE."
+50,genreB;genreD;genreA,"This is a description for item 50 belonging to genres genreB, genreD, genreA."
+51,genreA;genreD;genreE,"This is a description for item 51 belonging to genres genreA, genreD, genreE."
+52,genreB;genreC;genreD,"This is a description for item 52 belonging to genres genreB, genreC, genreD."
+53,genreE,This is a description for item 53 belonging to genres genreE.
+54,genreE;genreD,"This is a description for item 54 belonging to genres genreE, genreD."
+55,genreA;genreC,"This is a description for item 55 belonging to genres genreA, genreC."
+56,genreB;genreD;genreE,"This is a description for item 56 belonging to genres genreB, genreD, genreE."
+57,genreE;genreC;genreD,"This is a description for item 57 belonging to genres genreE, genreC, genreD."
+58,genreE;genreA,"This is a description for item 58 belonging to genres genreE, genreA."
+59,genreD;genreB,"This is a description for item 59 belonging to genres genreD, genreB."
+60,genreA,This is a description for item 60 belonging to genres genreA.
+61,genreC,This is a description for item 61 belonging to genres genreC.
+62,genreE,This is a description for item 62 belonging to genres genreE.
+63,genreE,This is a description for item 63 belonging to genres genreE.
+64,genreA;genreE,"This is a description for item 64 belonging to genres genreA, genreE."
+65,genreA,This is a description for item 65 belonging to genres genreA.
+66,genreE;genreB;genreC,"This is a description for item 66 belonging to genres genreE, genreB, genreC."
+67,genreE;genreB,"This is a description for item 67 belonging to genres genreE, genreB."
+68,genreE;genreC,"This is a description for item 68 belonging to genres genreE, genreC."
+69,genreB;genreD,"This is a description for item 69 belonging to genres genreB, genreD."
+70,genreA;genreC,"This is a description for item 70 belonging to genres genreA, genreC."
+71,genreE,This is a description for item 71 belonging to genres genreE.
+72,genreA;genreB,"This is a description for item 72 belonging to genres genreA, genreB."
+73,genreC;genreB,"This is a description for item 73 belonging to genres genreC, genreB."
+74,genreA,This is a description for item 74 belonging to genres genreA.
+75,genreA;genreC;genreE,"This is a description for item 75 belonging to genres genreA, genreC, genreE."
+76,genreD;genreA;genreC,"This is a description for item 76 belonging to genres genreD, genreA, genreC."
+77,genreB,This is a description for item 77 belonging to genres genreB.
+78,genreD,This is a description for item 78 belonging to genres genreD.
+79,genreC;genreA;genreD,"This is a description for item 79 belonging to genres genreC, genreA, genreD."
+80,genreA,This is a description for item 80 belonging to genres genreA.
+81,genreD;genreC,"This is a description for item 81 belonging to genres genreD, genreC."
+82,genreE;genreB,"This is a description for item 82 belonging to genres genreE, genreB."
+83,genreD;genreC;genreB,"This is a description for item 83 belonging to genres genreD, genreC, genreB."
+84,genreD;genreC,"This is a description for item 84 belonging to genres genreD, genreC."
+85,genreC,This is a description for item 85 belonging to genres genreC.
+86,genreE;genreC;genreB,"This is a description for item 86 belonging to genres genreE, genreC, genreB."
+87,genreD;genreE;genreA,"This is a description for item 87 belonging to genres genreD, genreE, genreA."
+88,genreB,This is a description for item 88 belonging to genres genreB.
+89,genreB;genreA,"This is a description for item 89 belonging to genres genreB, genreA."
+90,genreB,This is a description for item 90 belonging to genres genreB.
+91,genreD;genreE,"This is a description for item 91 belonging to genres genreD, genreE."
+92,genreD;genreA,"This is a description for item 92 belonging to genres genreD, genreA."
+93,genreC,This is a description for item 93 belonging to genres genreC.
+94,genreC;genreB;genreE,"This is a description for item 94 belonging to genres genreC, genreB, genreE."
+95,genreC;genreD;genreA,"This is a description for item 95 belonging to genres genreC, genreD, genreA."
+96,genreE;genreB;genreA,"This is a description for item 96 belonging to genres genreE, genreB, genreA."
+97,genreE;genreB,"This is a description for item 97 belonging to genres genreE, genreB."
+98,genreE,This is a description for item 98 belonging to genres genreE.
+99,genreD;genreC;genreE,"This is a description for item 99 belonging to genres genreD, genreC, genreE."
+100,genreB;genreC;genreA,"This is a description for item 100 belonging to genres genreB, genreC, genreA."

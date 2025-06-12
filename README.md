@@ -1,214 +1,204 @@
 # AI 추천 모델 샘플 저장소
+
+### 목차
+1. [프로젝트 개요](#프로젝트-개요)
+2. [파이썬 데이터 엔지니어를 위한 지침](#파이썬-데이터-엔지니어를-위한-지침)
+3. [세부 작업 지침](#세부-작업-지침)
+    1. [개발 환경 설정](#1-개발-환경-설정)
+    2. [데이터 준비](#2-데이터-준비)
+    3. [구현된 추천 모델 예제 상세](#3-구현된-추천-모델-예제-상세)
+        * [아이템 기반 협업 필터링 (Item-Based Collaborative Filtering)](#아이템-기반-협업-필터링-item-based-collaborative-filtering-예제)
+        * [사용자 기반 협업 필터링 (User-Based Collaborative Filtering)](#사용자-기반-협업-필터링-user-based-collaborative-filtering-예제)
+        * [특이값 분해 (SVD - Singular Value Decomposition)](#특이값-분해-svd---singular-value-decomposition-예제)
+        * [콘텐츠 기반 필터링 (TF-IDF)](#콘텐츠-기반-필터링-tf-idf-예제)
+        * [딥러닝 기반 추천 (DNN with Embeddings)](#딥러닝-기반-추천-dnn-with-embeddings-예제)
+        * [SASRec (Self-Attentive Sequential Recommendation)](#sasrec-self-attentive-sequential-recommendation-예제)
+        * [Two-Tower Hybrid Recommendation](#two-tower-hybrid-recommendation-예제)
+    4. [문서화 및 `README.md` 업데이트](#4-문서화-및-readmemd-업데이트) (본 문서)
+    5. [테스트](#5-테스트)
+4. [저장소 디렉토리 구조](#저장소-디렉토리-구조)
+5. [윤리적 고려 사항](#윤리적-고려-사항)
+6. [문의 사항](#문의-사항)
+
+---
+
 ### 프로젝트 개요
 본 저장소는 다양한 인공지능(AI) 기반 추천 모델의 예시 코드와 활용 사례를 제공합니다. 본 프로젝트의 궁극적인 목표는 사용자가 추천 시스템의 기본 원리를 심층적으로 이해하고, 실제 프로젝트에 효율적으로 적용할 수 있도록 지원하는 것입니다. 특히, 파이썬 데이터 엔지니어는 모델 학습, 예측, 평가 등 일련의 과정을 명확하고 실용적인 예제를 통해 직관적으로 경험할 수 있도록 설계되었습니다.
 
 ### 파이썬 데이터 엔지니어를 위한 지침
 본 프로젝트의 핵심 목표는 다음과 같습니다:
-1. 추천 모델 예제 구현: 현재 저장소에 포함된 (또는 향후 추가될) 추천 모델들을 활용하여 사용자가 쉽게 따라 할 수 있는 파이썬 예제 코드를 개발해야 합니다.
-2. 사용자 접근성 확보: 비전문가도 코드를 실행하고 그 결과를 명확하게 확인할 수 있도록 간결하고 명료한 인터페이스를 제공해야 합니다.
-3. 상세한 주석 및 설명: 코드 내부에 충분한 주석을 포함하고, README.md 파일에 각 예제의 목적, 사용 방법, 예상 결과에 대한 구체적인 설명을 추가해야 합니다.
-4. 재현 가능한 환경 구축: 예제 실행에 필요한 환경 설정(예: 라이브러리 종속성)에 대한 명확한 지침을 제공하여 재현성을 보장해야 합니다.
+1. 추천 모델 예제 구현: 현재 저장소에 포함된 추천 모델들을 활용하여 사용자가 쉽게 따라 할 수 있는 파이썬 예제 코드를 개발했습니다.
+2. 사용자 접근성 확보: 비전문가도 코드를 실행하고 그 결과를 명확하게 확인할 수 있도록 간결하고 명료한 인터페이스를 제공합니다.
+3. 상세한 주석 및 설명: 코드 내부에 충분한 주석을 포함하고, 본 `README.md` 파일에 각 예제의 목적, 사용 방법, 예상 결과에 대한 구체적인 설명을 추가했습니다.
+4. 재현 가능한 환경 구축: 예제 실행에 필요한 환경 설정(예: 라이브러리 종속성)에 대한 명확한 지침을 제공하여 재현성을 보장합니다.
 
 ### 세부 작업 지침
+
 #### 1. 개발 환경 설정
 예제 코드 실행을 위한 파이썬 환경 설정 방법을 안내합니다.
-- 파이썬 버전: 파이썬 3.9 이상 버전 사용을 권장합니다.
+- 파이썬 버전: 파이썬 3.10 이상 버전 사용을 권장합니다.
 - 가상 환경 생성: `venv` 또는 `conda`를 활용하여 독립적인 가상 환경을 구축합니다.
-```
+```bash
 python -m venv venv
 source venv/bin/activate  # macOS/Linux
 # venv\Scripts\activate   # Windows
 ```
-- 필요 라이브러리 설치: `requirements.txt` 파일에 필요한 라이브러리 목록을 명시하고, 해당 파일을 통해 일괄 설치를 진행합니다.
-```
+- 필요 라이브러리 설치: `requirements.txt` 파일에 필요한 라이브러리 목록이 명시되어 있으며, 해당 파일을 통해 일괄 설치를 진행합니다.
+```bash
 pip install -r requirements.txt
 ```
-(예시: pandas, numpy, scikit-learn, scipy, lightfm, implicit, tensorflow 또는 pytorch 등)
+현재 `requirements.txt` 내용:
+```
+pandas
+scikit-learn
+numpy==1.26.4
+surprise
+tensorflow
+pytest
+```
 
 #### 2. 데이터 준비
-예제 실행에 필요한 데이터셋을 준비합니다. 실제 데이터 활용이 어려운 경우, 모델의 기능 시연을 위한 더미 데이터를 생성할 수 있습니다.
-- 데이터 형식: CSV, Parquet 또는 Pandas DataFrame으로 손쉽게 로드 가능한 형식을 선호합니다.
-- 더미 데이터 생성 스크립트: 필요시 `data/generate_dummy_data.py`와 같은 스크립트를 제공하여 사용자가 더미 데이터를 직접 생성할 수 있도록 지원합니다. 데이터는 사용자-아이템 상호작용(예: 사용자 ID, 아이템 ID, 평점/시청 시간) 및 아이템 메타데이터 등을 포함해야 합니다.
-```
-# 예시 더미 데이터 생성 (data/generate_dummy_data.py)
-import pandas as pd
-import numpy as np
+예제 실행에 필요한 데이터셋은 `data/generate_dummy_data.py` 스크립트를 통해 생성됩니다. 이 스크립트는 사용자-아이템 상호작용 데이터 (`dummy_interactions.csv`), 아이템 메타데이터 (`dummy_item_metadata.csv`), 그리고 순차적 추천 모델을 위한 사용자 아이템 시퀀스 데이터 (`dummy_sequences.csv`)를 생성할 수 있습니다. 각 예제 스크립트는 실행 시 필요에 따라 이 더미 데이터 생성 스크립트를 자동으로 호출하도록 구현되어 있습니다.
+- `dummy_interactions.csv`: `user_id`, `item_id`, `rating` 열을 포함합니다.
+- `dummy_item_metadata.csv`: `item_id`, `genres`, `description` 열을 포함합니다.
+- `dummy_sequences.csv`: `user_id`, `item_ids_sequence` (공백으로 구분된 아이템 ID 시퀀스) 열을 포함합니다.
 
-def generate_dummy_data(num_users=100, num_items=50, num_interactions=1000):
-    user_ids = np.random.randint(1, num_users + 1, num_interactions)
-    item_ids = np.random.randint(1, num_items + 1, num_interactions)
-    ratings = np.random.randint(1, 6, num_interactions) # 1-5 평점을 의미합니다.
+#### 3. 구현된 추천 모델 예제 상세
 
-    df = pd.DataFrame({
-        'user_id': user_ids,
-        'item_id': item_ids,
-        'rating': ratings
-    })
-    df.to_csv('data/dummy_interactions.csv', index=False)
-    print(f"더미 상호작용 데이터 생성이 완료되었습니다: data/dummy_interactions.csv ({len(df)} 행)")
+각 예제 스크립트의 상단에는 해당 모델에 대한 자세한 설명, 장단점, 성능 고려 사항 (Big O 표기법 또는 주요 복잡도 요인 포함)이 주석으로 기술되어 있습니다. 본 README에서는 간략한 요약을 제공합니다.
 
-if __name__ == "__main__":
-    generate_dummy_data()
-```
+---
+##### 아이템 기반 협업 필터링 (Item-Based Collaborative Filtering) 예제
+*   **파일:** `examples/collaborative_filtering/item_cf_example.py`
+*   **모델:** 아이템 기반 협업 필터링 (Item-Based Collaborative Filtering)
+*   **목적:** 사용자가 특정 아이템을 좋아했을 때, 그 아이템과 유사한 다른 아이템들을 추천하는 방식을 시연합니다. 아이템 간 유사도는 사용자들의 평점 패턴을 기반으로 계산됩니다.
+*   **실행 방법:** `python examples/collaborative_filtering/item_cf_example.py`
+*   **예상 출력:** 샘플 사용자에 대한 상위 5개 추천 아이템 ID와 예상 평점을 출력합니다. 데이터 로딩 과정 및 아이템 유사도 행렬의 일부도 함께 표시됩니다.
+*   **모델 개요:**
+    *   *장점:* 안정적인 추천, 설명 가능성, 새로운 사용자에게도 일부 아이템 평가 시 추천 가능.
+    *   *단점:* 데이터 희소성 문제, 유사도 계산 확장성, 인기 편향, 새로운 아이템 콜드 스타트.
+*   **성능:** 아이템 유사도 계산은 밀집 행렬의 경우 O(I² * U) (I: 아이템 수, U: 사용자 수).
+*   **참고:** 자세한 설명은 스크립트 내 주석을 참고하십시오.
 
-#### 3. 추천 모델 통합 및 예제 개발
-저장소에 포함되거나 향후 추가될 추천 모델들을 활용하여 예제 코드를 작성합니다. 각 모델별로 별도의 예제 파일을 생성하며, 다음 기능을 반드시 포함해야 합니다.
-- 모델 선택: 현재 저장소 내의 모델(예: 협업 필터링, 콘텐츠 기반 필터링, 행렬 분해, 딥러닝 기반 모델 등) 중 하나를 선택하여 예제를 구성합니다. 사용자 지정 임베딩 모델 개발에 대한 관심이 높으므로, 임베딩을 활용하는 모델(예: Factorization Machines, Word2Vec/Doc2Vec 기반 아이템 임베딩) 예제를 우선적으로 고려할 수 있습니다.
-- 데이터 로드 및 전처리: 데이터셋을 불러오고 모델 학습에 적합한 형태로 전처리하는 과정을 포함합니다.
-- 모델 학습: 모델을 학습시키는 코드를 구현합니다.예측: 특정 사용자에게 아이템을 추천하거나, 특정 아이템에 대한 예측 평점을 생성하는 코드를 작성합니다.
-- 평가 (선택 사항이나 강력히 권장): 모델의 성능을 평가하는 기본적인 지표(예: Precision@K, Recall@K, RMSE 등)를 포함합니다. 성능 평가 코드는 Big O 복잡도를 고려하여 효율적으로 구현되어야 합니다.
-- 주석: 모든 코드 라인에 상세한 주석을 달아 각 작업의 목적을 명확히 설명해야 합니다.
-- 클린 코드: 가독성이 높고 유지보수가 용이한 코드를 작성하는 것을 원칙으로 합니다.
+---
+##### 사용자 기반 협업 필터링 (User-Based Collaborative Filtering) 예제
+*   **파일:** `examples/collaborative_filtering/user_cf_example.py`
+*   **모델:** 사용자 기반 협업 필터링 (User-Based Collaborative Filtering)
+*   **목적:** 특정 사용자와 유사한 취향을 가진 다른 사용자들이 좋아했던 아이템을 추천하는 방식을 시연합니다.
+*   **실행 방법:** `python examples/collaborative_filtering/user_cf_example.py`
+*   **예상 출력:** 샘플 사용자에 대한 상위 5개 추천 아이템 ID와 예상 점수를 출력합니다.
+*   **모델 개요:**
+    *   *장점:* 단순하고 직관적, 우연한 발견 가능성.
+    *   *단점:* 데이터 희소성, 확장성 문제, 새로운 사용자 콜드 스타트, 인기 편향.
+*   **성능:** 사용자 유사도 계산은 밀집 행렬의 경우 O(U² * I) (U: 사용자 수, I: 아이템 수).
+*   **참고:** 자세한 설명은 스크립트 내 주석을 참고하십시오.
 
-#### 예제 코드 구조 (예시: `examples/collaborative_filtering/item_cf_example.py`)
-```
-# examples/collaborative_filtering/item_cf_example.py
-import pandas as pd
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
+---
+##### 특이값 분해 (SVD - Singular Value Decomposition) 예제
+*   **파일:** `examples/matrix_factorization/svd_example.py`
+*   **모델:** 특이값 분해 (SVD) - `surprise` 라이브러리 사용
+*   **목적:** 사용자-아이템 평점 행렬을 저차원 잠재 요인 행렬로 분해하여 평점을 예측하고 아이템을 추천합니다.
+*   **실행 방법:** `python examples/matrix_factorization/svd_example.py`
+*   **예상 출력:** 샘플 사용자에 대한 상위 5개 추천 아이템 ID와 예측 평점을 출력합니다.
+*   **모델 개요:**
+    *   *장점:* 희소 데이터 처리 용이, 간결한 표현, 복잡한 관계 포착.
+    *   *단점:* 해석 어려움, 콜드 스타트, 학습 비용.
+*   **성능:** 학습 시간은 에포크 수, 잠재 요인 수, 데이터 크기에 따라 달라집니다.
+*   **참고:** 자세한 설명은 스크립트 내 주석을 참고하십시오.
 
-# 1. 데이터 로드 및 전처리 (Big O: 로딩 O(N), 밀집 행렬 변환 O(U*I), 여기서 U=사용자 수, I=아이템 수)
-# 예시: 사용자-아이템 상호작용 데이터 (user_id, item_id, rating)
-def load_and_preprocess_data(filepath='data/dummy_interactions.csv'):
-    """
-    더미 상호작용 데이터를 로드하고 사용자-아이템 행렬로 변환합니다.
-    """
-    df = pd.read_csv(filepath)
-    # Pivot 테이블을 사용하여 사용자-아이템 행렬 생성
-    # 상호작용이 없는 경우 0으로 채워 넣습니다.
-    user_item_matrix = df.pivot_table(index='user_id', columns='item_id', values='rating').fillna(0)
-    return user_item_matrix
+---
+##### 콘텐츠 기반 필터링 (TF-IDF) 예제
+*   **파일:** `examples/content_based/tfidf_example.py`
+*   **모델:** TF-IDF를 활용한 콘텐츠 기반 필터링
+*   **목적:** 아이템의 텍스트 설명을 TF-IDF 벡터로 변환하고, 사용자가 과거에 좋아했던 아이템의 콘텐츠와 유사한 아이템을 추천합니다.
+*   **실행 방법:** `python examples/content_based/tfidf_example.py`
+*   **예상 출력:** 샘플 사용자에 대한 상위 5개 추천 아이템 ID, 유사도 점수, 아이템 장르 및 설명 일부를 출력합니다.
+*   **모델 개요:**
+    *   *장점:* 사용자 독립성, 투명성, 새로운 아이템 처리 용이.
+    *   *단점:* 제한된 우연성, 특징 공학의 중요성, 과적합 가능성.
+*   **성능:** TF-IDF 벡터화 및 유사도 계산은 아이템 및 특징 수에 의존합니다.
+*   **참고:** 자세한 설명은 스크립트 내 주석을 참고하십시오.
 
-# 2. 아이템 간 유사도 계산 (Big O: O(I^2 * M), 여기서 I=아이템 수, M=특징/사용자 수)
-# 참고: 아이템 수가 많을수록 계산 성능 저하가 발생할 수 있습니다.
-# 대규모 시스템에서는 희소 행렬 라이브러리(scipy.sparse) 또는 근사 최근접 이웃(ANN) 알고리즘을 고려해야 합니다.
-def calculate_item_similarity(user_item_matrix):
-    """
-    아이템 간의 코사인 유사도를 계산합니다.
-    """
-    item_similarity_matrix = cosine_similarity(user_item_matrix.T) # .T는 전치(Transpose)하여 아이템별 유사도 계산
-    item_similarity_df = pd.DataFrame(item_similarity_matrix,
-                                      index=user_item_matrix.columns,
-                                      columns=user_item_matrix.columns)
-    return item_similarity_df
+---
+##### 딥러닝 기반 추천 (DNN with Embeddings) 예제
+*   **파일:** `examples/deep_learning/dnn_recommender.py`
+*   **모델:** 임베딩과 Dense 레이어를 사용한 심층 신경망 (DNN) - TensorFlow/Keras 사용
+*   **목적:** 사용자 ID와 아이템 ID를 임베딩 벡터로 변환 후 DNN을 통과시켜 평점을 예측하고 추천합니다.
+*   **실행 방법:** `python examples/deep_learning/dnn_recommender.py`
+*   **예상 출력:** 모델 구조, 학습 과정, 평가 결과 (Loss, MAE), 샘플 사용자에 대한 추천 아이템 및 예측 평점을 출력합니다.
+*   **모델 개요:**
+    *   *장점:* 풍부한 특징 표현 자동 학습, 비선형 관계 포착, 추가 특징 통합 용이.
+    *   *단점:* 복잡성, 긴 학습 시간, 많은 데이터 요구, 해석 어려움, 콜드 스타트.
+*   **성능:** 학습 시간은 데이터셋 크기, 네트워크 구조, 에포크 수에 크게 좌우됩니다.
+*   **참고:** 자세한 설명은 스크립트 내 주석을 참고하십시오.
 
-# 3. 아이템 기반 협업 필터링 추천 (Big O: O(U * I_k * I_s), 여기서 U=사용자 수, I_k=예측할 아이템 수, I_s=유사 아이템 수)
-def get_item_based_recommendations(user_id, user_item_matrix, item_similarity_df, num_recommendations=5):
-    """
-    특정 사용자에게 아이템 기반 협업 필터링을 사용하여 아이템을 추천합니다.
-    """
-    # 사용자가 평가한 아이템 목록을 가져옵니다.
-    user_ratings = user_item_matrix.loc[user_id]
-    rated_items = user_ratings[user_ratings > 0].index
+---
+##### SASRec (Self-Attentive Sequential Recommendation) 예제
+*   **파일:** `examples/sequential/transformer_sasrec_example.py`
+*   **모델:** 자기 주의(Self-Attention) 메커니즘 기반 순차 추천 모델 (SASRec) - TensorFlow/Keras 사용
+*   **목적:** 사용자의 아이템 상호작용 시퀀스를 입력으로 받아 다음 아이템을 예측하는 Transformer 기반 모델을 시연합니다.
+*   **실행 방법:** `python examples/sequential/transformer_sasrec_example.py`
+*   **예상 출력:** 모델 구조, 학습 과정(에포크별 손실 및 정확도), 그리고 샘플 사용자 시퀀스에 대한 다음 아이템 추천 목록 및 예측 점수를 출력합니다. `dummy_sequences.csv` 파일이 없을 경우 자동 생성합니다.
+*   **모델 개요:**
+    *   *장점:* 순차적 동적 특성 포착, 문맥적 이해 (Self-Attention), 병렬 처리 효율성.
+    *   *단점:* 충분한 시퀀스 데이터 필요, 시퀀스 길이에 따른 계산 비용 증가 가능성, 새로운 아이템 콜드 스타트.
+*   **성능:** 학습 시간은 시퀀스 수, 시퀀스 길이, 모델 파라미터(임베딩 차원, 헤드 수, 블록 수)에 따라 달라집니다. Self-Attention은 시퀀스 길이에 대해 제곱의 복잡도를 가질 수 있으나, 추천 시스템의 일반적인 시퀀스 길이는 감당 가능한 수준입니다.
+*   **참고:** 자세한 설명은 스크립트 내 주석을 참고하십시오.
 
-    # 아직 평가하지 않은 아이템 목록을 식별합니다.
-    unrated_items = user_item_matrix.columns.difference(rated_items)
+---
+##### Two-Tower Hybrid Recommendation 예제
+*   **파일:** `examples/hybrid/two_tower_hybrid_example.py`
+*   **모델:** 사용자 타워와 아이템 타워로 구성된 투-타워 하이브리드 추천 모델 - TensorFlow/Keras 사용
+*   **목적:** 사용자 정보(ID)와 아이템 정보(ID 및 장르)를 각각의 타워에서 임베딩으로 처리한 후, 두 임베딩 간의 유사도(점곱)를 통해 사용자-아이템 간의 상호작용을 예측하고 추천하는 모델을 시연합니다. 아이템 타워는 아이템 ID와 장르 정보를 모두 활용합니다.
+*   **실행 방법:** `python examples/hybrid/two_tower_hybrid_example.py`
+*   **예상 출력:** 모델 구조, 학습 과정(에포크별 손실 및 정확도), 그리고 샘플 사용자에 대한 추천 아이템 목록과 아이템 설명 일부 및 유사도 점수를 출력합니다.
+*   **모델 개요:**
+    *   *장점:* 확장성 (사용자/아이템 임베딩 독립적 계산 및 사전 계산 가능), 다양한 특징 통합 용이, 대규모 추천 시스템의 후보 생성 단계에 효과적.
+    *   *단점:* 상호작용 모델링 단순화 (주로 점곱 사용), 특징 공학의 중요성 지속.
+*   **성능:** 학습 시간은 데이터셋 크기, 네거티브 샘플링 전략, 네트워크 구조에 따라 달라집니다. 서빙 시 사용자 임베딩과 사전 계산된 아이템 임베딩을 활용하여 빠른 후보 생성이 가능합니다.
+*   **참고:** 자세한 설명은 스크립트 내 주석을 참고하십시오.
 
-    # 추천 점수를 초기화합니다.
-    recommendation_scores = {}
-
-    # 평가하지 않은 각 아이템에 대해 예상 평점을 계산합니다.
-    # 이 과정에서 O(I_k * I_s) 계산이 발생하며, 대규모 데이터셋에서는 최적화가 필요합니다.
-    for item_to_recommend in unrated_items:
-        total_score = 0
-        sum_of_similarities = 0
-
-        # 해당 아이템과 사용자가 평가한 아이템들의 유사도 및 평점을 활용합니다.
-        for rated_item in rated_items:
-            similarity = item_similarity_df.loc[item_to_recommend, rated_item]
-            rating = user_ratings.loc[rated_item]
-
-            # 유사도가 0이 아닌 경우에만 계산에 포함합니다.
-            if similarity > 0:
-                total_score += similarity * rating
-                sum_of_similarities += similarity
-        
-        # 유사도 합이 0이 아닌 경우에만 예상 평점을 계산합니다.
-        if sum_of_similarities > 0:
-            predicted_rating = total_score / sum_of_similarities
-            recommendation_scores[item_to_recommend] = predicted_rating
-
-    # 예측 평점이 높은 순으로 정렬하여 추천 목록을 반환합니다.
-    recommended_items = sorted(recommendation_scores.items(), key=lambda x: x[1], reverse=True)
-    return recommended_items[:num_recommendations]
-
-# 메인 실행 함수
-if __name__ == "__main__":
-    # 1. 더미 데이터 생성 (파일이 없는 경우)
-    try:
-        pd.read_csv('data/dummy_interactions.csv')
-    except FileNotFoundError:
-        print("더미 데이터 파일이 없습니다. 생성 중...")
-        # 본 스크립트 실행 전에 'data/generate_dummy_data.py'를 먼저 실행하여 데이터를 생성해야 합니다.
-        # 편의상, 이 예제에서는 해당 파일이 미리 실행되었다고 가정합니다.
-        print("오류: data/dummy_interactions.csv 파일을 찾을 수 없습니다. 'data/generate_dummy_data.py'를 먼저 실행해 주십시오.")
-        exit() # 데이터가 없는 경우 프로그램 종료
-
-    print("데이터 로드 및 전처리 중...")
-    user_item_matrix = load_and_preprocess_data()
-    print("사용자-아이템 행렬 (일부):\n", user_item_matrix.head())
-
-    print("\n아이템 유사도 계산 중... (대규모 데이터셋에서는 상당한 시간이 소요될 수 있습니다.)")
-    item_similarity_df = calculate_item_similarity(user_item_matrix)
-    print("아이템 유사도 행렬 (일부):\n", item_similarity_df.iloc[:5, :5])
-
-    target_user_id = user_item_matrix.index[0] # 첫 번째 사용자 ID를 선택합니다.
-    print(f"\n사용자 {target_user_id} 에 대한 추천 아이템을 생성 중입니다...")
-    recommendations = get_item_based_recommendations(target_user_id, user_item_matrix, item_similarity_df)
-
-    print(f"\n사용자 {target_user_id} 를 위한 추천 아이템 목록:")
-    if recommendations:
-        for item, score in recommendations:
-            print(f"- 아이템 {item}: 예상 평점 {score:.2f}")
-    else:
-        print("추천할 아이템이 없습니다. (모든 아이템을 이미 평가했거나 유사한 아이템이 존재하지 않습니다.)")
-
-    print("\n--- 예제 실행 완료 ---")
-```
+---
 
 #### 4. 문서화 및 `README.md` 업데이트
-각 예제 파일에 대한 설명과 사용 지침을 `README.md` 파일에 추가해야 합니다.
-- 목차: 저장소의 구조와 내용을 한눈에 파악할 수 있도록 목차를 포함합니다.
-- 각 예제 설명:
-  - 예제 파일명
-  - 예제에서 활용하는 모델/알고리즘 (예: 아이템 기반 협업 필터링)
-  - 예제의 목적실행 방법 (예: python examples/collaborative_filtering/item_cf_example.py)
-  - 예상 출력 결과
-  - 모델의 장단점 및 한계점 (간략하게)
-  - **성능 고려 사항**: 코드의 Big O 성능에 대한 간략한 설명과 대규모 데이터셋 적용 시 고려해야 할 사항을 명시합니다.
-  
+본 문서는 각 예제 파일에 대한 설명과 사용 지침을 포함하도록 업데이트되었습니다.
+
 #### 5. 테스트
-간단한 단위 테스트 또는 통합 테스트를 작성하여 코드의 정확성을 확보합니다.
-- `pytes`t와 같은 테스트 프레임워크를 활용하여 테스트 코드를 작성합니다.
-- 예시: `tests/test_model.py`
+기본적인 단위 테스트 및 예제 스크립트 실행 테스트가 `tests` 디렉토리에 구현되어 있습니다. `pytest`를 사용하여 실행할 수 있습니다.
+```bash
+pytest -v
+```
+테스트는 다음을 포함합니다:
+- `tests/test_data_generation.py`: 더미 데이터 생성 스크립트의 정상 동작 및 파일 생성 여부 검증 (기본 파일 및 시퀀스 파일 포함).
+- `tests/test_example_scripts.py`: 모든 예제 스크립트가 오류 없이 실행되고, 예상되는 형태의 추천 관련 출력을 생성하는지 검증.
 
-#### 6. 기여 가이드라인 (Contribution Guidelines)
-향후 다른 개발자들이 본 저장소에 기여할 수 있도록 간략한 가이드라인을 제시합니다.
-- 새로운 모델/예제 추가
-- 버그 수정
-- 문서 개선
-- Pull Request (PR) 가이드라인 (예: 브랜치 전략, 커밋 메시지 규칙)
-
-### 저장소 디렉토리 구조 (제안)
+### 저장소 디렉토리 구조
 ```
 ├── README.md                 # 현재 파일
 ├── requirements.txt          # Python 의존성 목록
 ├── data/                     # 데이터셋 저장 디렉토리
-│   └── dummy_interactions.csv
-│   └── generate_dummy_data.py # 더미 데이터 생성 스크립트
+│   ├── dummy_interactions.csv  # (자동 생성됨) 사용자-아이템 상호작용 더미 데이터
+│   ├── dummy_item_metadata.csv # (자동 생성됨) 아이템 메타데이터 더미 데이터
+│   ├── dummy_sequences.csv     # (자동 생성됨) 사용자-아이템 시퀀스 더미 데이터
+│   └── generate_dummy_data.py  # 더미 데이터 생성 스크립트
 ├── examples/                 # 각 추천 모델 예제 코드
 │   ├── collaborative_filtering/
-│   │   └── item_cf_example.py # 아이템 기반 협업 필터링 예제
-│   │   └── user_cf_example.py # 사용자 기반 협업 필터링 예제
-│   ├── matrix_factorization/
-│   │   └── svd_example.py     # SVD (Singular Value Decomposition) 예제
+│   │   ├── item_cf_example.py    # 아이템 기반 협업 필터링 예제
+│   │   └── user_cf_example.py    # 사용자 기반 협업 필터링 예제
+│   ├── content_based/
+│   │   └── tfidf_example.py      # TF-IDF 기반 콘텐츠 추천 예제
 │   ├── deep_learning/
-│   │   └── dnn_recommender.py # 딥러닝 기반 추천 모델 예제 (사용자 임베딩 포함)
-│   └── content_based/
-│       └── tfidf_example.py   # TF-IDF 기반 콘텐츠 추천 예제
-├── models/                   # 학습된 모델 저장 또는 모델 정의 코드 포함 디렉토리 (선택 사항)
+│   │   └── dnn_recommender.py    # DNN 기반 추천 모델 예제
+│   ├── hybrid/
+│   │   └── two_tower_hybrid_example.py # 투-타워 하이브리드 추천 모델 예제
+│   ├── matrix_factorization/
+│   │   └── svd_example.py        # SVD (Singular Value Decomposition) 예제
+│   └── sequential/
+│       └── transformer_sasrec_example.py # SASRec 순차 추천 모델 예제
 ├── tests/                    # 테스트 코드
-│   └── test_example.py
+│   ├── __init__.py
+│   ├── test_data_generation.py
+│   └── test_example_scripts.py
 └── .gitignore                # Git 무시 파일
 ```
 
