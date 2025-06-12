@@ -53,7 +53,7 @@ def test_run_tfidf_example():
     assert process.returncode == 0, f"Script {script_path_rel} failed with error code {process.returncode}.\nStderr:\n{process.stderr}"
     assert len(process.stdout) > 0, f"Script {script_path_rel} produced no stdout output."
 
-    assert "콘텐츠 기반 필터링 (TF-IDF) 예제 실행 완료" in process.stdout, \
+    assert "Content-Based Filtering (TF-IDF) Example Finished" in process.stdout, \
         f"Script {script_path_rel} did not contain specific completion message in stdout.\nStdout:\n{process.stdout}"
 
     # Generic keywords for tfidf might be different, e.g., similarity scores

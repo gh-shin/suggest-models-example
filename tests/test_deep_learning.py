@@ -54,7 +54,7 @@ def test_run_dnn_recommender_example():
     assert process.returncode == 0, f"Script {script_path_rel} failed with error code {process.returncode}.\nStderr:\n{process.stderr}"
     assert len(process.stdout) > 0, f"Script {script_path_rel} produced no stdout output."
 
-    assert "DNN 기반 추천 예제 실행 완료" in process.stdout, \
+    assert "DNN Based Recommendation Example Finished" in process.stdout, \
         f"Script {script_path_rel} did not contain specific completion message in stdout.\nStdout:\n{process.stdout}"
     assert "MAE =" in process.stdout, \
         f"Script {script_path_rel} did not contain 'MAE =' in stdout.\nStdout:\n{process.stdout}"
