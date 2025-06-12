@@ -202,6 +202,10 @@ scipy
 *   **참고:** 자세한 설명은 스크립트 내 주석 (`examples/gnn/pinsage_example.py`)을 참고하십시오. 실제 모델 구현은 추후 추가될 예정입니다.
 
 ---
+
+현업에서 사용되는 대표적인 GNN 기반 추천 모델 외에도, GNN의 근간을 이루는 핵심 알고리즘들이 있습니다. 그래프 컨볼루션 네트워크(GCN), GraphSAGE, 그래프 어텐션 네트워크(GAT) 등은 이러한 기본 알고리즘에 해당하며, 추천 시스템 문제에 맞게 변형되거나 다른 모델과 결합되어 다양하게 활용됩니다. 아래에서는 이들 각 모델에 대한 간략한 소개와 예제 링크를 제공합니다.
+
+---
 ##### GCN (Graph Convolutional Network) 추천 예제
 *   **파일:** `examples/gnn/gcn_example.py`
 *   **모델:** GCN (Graph Convolutional Network)
@@ -228,6 +232,20 @@ scipy
     *   *단점:* 샘플링/집계 함수 선택이 성능에 영향, 노드 특징 필요, GCN보다 다소 복잡한 구현.
 *   **성능:** 학습 시 전체 인접 행렬 불필요. 집계 함수 복잡도와 샘플링 이웃 수가 계산 비용에 영향.
 *   **참고:** 자세한 설명은 스크립트 내 주석 (`examples/gnn/graphsage_example.py`)을 참고하십시오. 실제 모델 구현은 추후 추가될 예정입니다.
+
+---
+##### GAT (Graph Attention Network) 추천 예제
+*   **파일:** `examples/gnn/gat_example.py`
+*   **모델:** GAT (Graph Attention Network)
+*   **목적:** 그래프 컨볼루션 과정에 '어텐션' 메커니즘을 도입하여, 각 노드가 이웃 노드 정보 집계 시 이웃마다 다른 중요도(어텐션 가중치)를 할당합니다. 이를 통해 모델이 더 중요한 이웃에 집중하여 표현력 있는 노드 임베딩을 학습하도록 합니다.
+*   **실행 방법:** `python examples/gnn/gat_example.py` (현재는 플레이스홀더이며, 전체 구현 예정)
+*   **예상 출력:** (플레이스홀더 스크립트) 모델 구조, 더미 데이터 및 특징 생성, 학습 및 노드 임베딩 생성 과정에 대한 메시지를 출력합니다. 실제 구현 시 학습된 노드 임베딩 또는 추천 결과를 출력합니다.
+*   **모델 개요:**
+    *   *주요 특징:* 어텐션 메커니즘으로 이웃 노드에 차등적 가중치 부여, 멀티 헤드 어텐션으로 다양한 관점 학습, 귀납적 학습 가능.
+    *   *장점:* 중요한 이웃 노드에 자동 가중치 부여로 성능 및 해석력 향상 가능, 그래프 구조에 대한 사전 지식 덜 필요.
+    *   *단점:* GCN 대비 계산 비용 증가 가능성, 하이퍼파라미터 튜닝 중요, 과적합 위험.
+*   **성능:** 어텐션 가중치 계산은 노드와 이웃 쌍에 대해 수행. 멀티 헤드 어텐션은 계산량을 늘리나 병렬 처리 가능.
+*   **참고:** 자세한 설명은 스크립트 내 주석 (`examples/gnn/gat_example.py`)을 참고하십시오. 실제 모델 구현은 추후 추가될 예정입니다.
 
 ---
 
@@ -265,7 +283,8 @@ pytest -v
 │   │   ├── ngcf_example.py       # NGCF (Neural Graph Collaborative Filtering) 예제 (플레이스홀더)
 │   │   ├── pinsage_example.py    # PinSage 예제 (플레이스홀더)
 │   │   ├── gcn_example.py        # GCN 추천 예제 (플레이스홀더)
-│   │   └── graphsage_example.py  # GraphSAGE 추천 예제 (플레이스홀더)
+│   │   ├── graphsage_example.py  # GraphSAGE 추천 예제 (플레이스홀더)
+│   │   └── gat_example.py        # GAT 추천 예제 (플레이스홀더)
 │   ├── hybrid/
 │   │   └── two_tower_hybrid_example.py # 투-타워 하이브리드 추천 모델 예제
 │   ├── matrix_factorization/
