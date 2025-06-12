@@ -10,37 +10,71 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 from sklearn.preprocessing import LabelEncoder
 
 # --- SASRec (Self-Attentive Sequential Recommendation): Basic Explanation ---
-# SASRec is a sequential recommendation model that uses a Transformer-like architecture (specifically, the self-attention mechanism)
-# to capture the user's preferences based on their historical interaction sequence.
+# SASRec (Self-Attentive Sequential Recommendation) is a recommendation model designed to capture
+# user preferences based on their historical interaction sequences. It leverages the self-attention
+# mechanism, inspired by the Transformer model, to understand which items in a user's past
+# sequence are most influential for predicting the next item.
 #
 # How it works:
-# 1. Input: A sequence of item IDs representing a user's interaction history (e.g., [item3, item1, item5]).
-# 2. Item Embeddings: Each item in the sequence is mapped to a dense embedding vector.
-# 3. Positional Embeddings: To incorporate the order of items, positional embeddings are added to item embeddings.
-#    This tells the model where each item is in the sequence.
-# 4. Self-Attention Block(s):
-#    - The core of SASRec. Multiple self-attention "blocks" process the sequence.
-#    - Each block typically consists of:
-#        a. Multi-Head Self-Attention: Allows the model to jointly attend to information from different
-#           representation subspaces at different positions. It weighs the importance of other items in the
-#           sequence when predicting the next item. For example, to predict what comes after item5, it might
-#           attend more to item1 than item3 if that pattern is learned.
-#        b. Point-wise Feed-Forward Network (FFN): Applied to each position independently after attention.
-#           Usually two dense layers with a non-linear activation in between.
-#    - Residual connections and layer normalization are used around these components to help with training deeper models.
-# 5. Output: After processing through the attention blocks, the model outputs a representation for each position
-#    in the sequence. For next-item prediction, the representation of the *last* item in the input sequence
-#    is typically used to predict the next item (e.g., by computing scores against all candidate item embeddings).
+# 1. Input Representation:
+#    - User's interaction history is represented as a sequence of item IDs (e.g., [item_A, item_B, item_C]).
+#    - The task is to predict the next item (e.g., item_D) that the user is likely to interact with.
+#
+# 2. Item Embeddings:
+#    - Each item ID in the input sequence is mapped to a dense vector representation (item embedding).
+#    - This embedding captures the latent characteristics of the item.
+#    - A special padding token (often 0) is used for sequences shorter than MAX_SEQ_LENGTH.
+#
+# 3. Positional Embeddings:
+#    - Since self-attention itself doesn't inherently understand item order, positional information is crucial.
+#    - Positional embeddings are learned vectors, one for each position in the sequence (1 to MAX_SEQ_LENGTH).
+#    - These are added to the corresponding item embeddings to give the model a sense of item order.
+#
+# 4. Self-Attention Block(s): This is the core of SASRec, typically composed of one or more identical blocks.
+#    Each block aims to refine the representation of each item in the sequence by considering its context.
+#    A block usually contains:
+#    a. Causal Multi-Head Self-Attention:
+#       - "Self-Attention": Each item in the sequence attends to all other items *before it* (and itself)
+#         to calculate a weighted sum of their representations. This means the model learns which
+#         past items are most relevant for understanding the current item's role in the sequence.
+#       - "Causal": Ensures that when predicting the item at position 't', the model only attends to items
+#         at positions 'j <= t'. This prevents data leakage from future items.
+#       - "Multi-Head": The attention mechanism is run multiple times in parallel with different learned
+#         linear projections (heads). This allows the model to jointly attend to information from
+#         different representation subspaces at different positions. The outputs are then concatenated
+#         and linearly transformed.
+#    b. Point-wise Feed-Forward Network (FFN):
+#       - Applied independently to each item's representation after the self-attention step.
+#       - Typically consists of two dense layers with a non-linear activation (e.g., ReLU) in between.
+#       - This allows for more complex transformations of each item's representation.
+#    c. Add & Norm (Residual Connections and Layer Normalization):
+#       - Residual connections (adding the input of a sub-layer to its output) help in training deeper models
+#         by mitigating vanishing gradient problems.
+#       - Layer Normalization stabilizes the learning process.
+#
+# 5. Prediction Output:
+#    - After the input sequence passes through all Transformer blocks, the output representation of the
+#      *last item* in the (input) sequence is taken. This vector is considered to summarize the user's
+#      current interest based on their history.
+#    - This final vector is then passed through a Dense layer with `num_items_for_embedding` units (no activation or softmax,
+#      as loss function will handle logits) to produce a score (logit) for every possible next item.
+#    - During training, `SparseCategoricalCrossentropy` loss is used to compare these logits against the
+#      actual next item in the sequence.
 #
 # Pros:
 # - Captures Sequential Dynamics: Effectively models the order and dependencies within user interaction sequences.
-# - Contextual Understanding: Self-attention allows it to understand which past items are more relevant for the next prediction.
-# - Parallelizable: Attention computations can be parallelized, making it efficient on modern hardware.
+#   Self-attention can identify long-range dependencies.
+# - Contextual Understanding: Learns to weigh the importance of different past items dynamically based on the current context
+#   when predicting the next item.
+# - Parallelizable Training: Computations within the Transformer blocks (especially self-attention) can be highly parallelized,
+#   making training efficient on modern hardware like GPUs/TPUs.
 #
 # Cons:
-# - Data Requirements: Like many deep learning models, it performs best with sufficient sequence data.
-# - Computational Cost: Self-attention can be quadratic in sequence length, though typically sequence lengths in recsys are manageable.
-# - Cold-Start for Items: New items not in training sequences cannot be directly recommended.
+# - Data Requirements: Performs best with a sufficient amount of user sequence data to learn meaningful patterns.
+# - Computational Cost: Self-attention has a complexity of O(sequence_length^2 * embedding_dim), which can be
+#   demanding for very long sequences. However, sequence lengths in recommendation are often moderate.
+# - Item Cold-Start: Cannot directly recommend new items that were not present in the training data (as they lack embeddings).
+#   Requires strategies like retraining or using item content features for new items.
 # ---
 
 # Dynamically add project root to sys.path
@@ -48,96 +82,144 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# --- Model Hyperparameters (small for example) ---
-MAX_SEQ_LENGTH = 10  # Max length of user sequence
-EMBEDDING_DIM = 32   # Dimension of item and positional embeddings
-NUM_HEADS = 2        # Number of attention heads
-NUM_BLOCKS = 1       # Number of Transformer blocks
-FFN_UNITS = 64       # Units in the feed-forward network
-DROPOUT_RATE = 0.2
-LEARNING_RATE = 0.001
-EPOCHS = 5           # Small number for quick example
-BATCH_SIZE = 32
+# --- Model Hyperparameters (kept small for this example for quick execution) ---
+MAX_SEQ_LENGTH = 10  # Maximum length of a user's item interaction sequence considered by the model.
+EMBEDDING_DIM = 32   # Dimensionality of item and positional embedding vectors.
+NUM_HEADS = 2        # Number of attention heads in the MultiHeadAttention layer.
+NUM_BLOCKS = 1       # Number of Transformer blocks to stack. SASRec paper suggests 2 for some datasets.
+FFN_UNITS = 64       # Number of units in the hidden layer of the Feed-Forward Network.
+DROPOUT_RATE = 0.2   # Dropout rate for regularization in various layers.
+LEARNING_RATE = 0.001# Learning rate for the Adam optimizer.
+EPOCHS = 5           # Number of training epochs (small for example).
+BATCH_SIZE = 32      # Number of sequences per training batch.
 
+# --- Data Loading and Preprocessing ---
+# Time Complexity:
+# - Reading CSV: O(N_interactions_total)
+# - LabelEncoding: O(N_total_items_in_sequences)
+# - Sequence padding and splitting: O(N_sequences * MAX_SEQ_LENGTH)
 def load_sequences(base_filepath='data/dummy_sequences.csv', max_seq_len=MAX_SEQ_LENGTH):
-    """Loads and preprocesses sequence data."""
+    """
+    Loads item interaction sequences, preprocesses them for SASRec, and creates training samples.
+    - Reads sequences from a CSV file.
+    - Encodes item IDs to 0-indexed integers.
+    - Generates (input_sequence, target_item) pairs.
+    - Pads input sequences to a fixed length.
+
+    Args:
+        base_filepath (str): Path to the sequence data CSV, relative to project root.
+        max_seq_len (int): The fixed length to pad/truncate sequences to.
+
+    Returns:
+        tuple: (X_padded, y_array, num_items_for_embedding, item_encoder) or (None, None, None, None) on failure.
+               - X_padded: Padded input sequences.
+               - y_array: Target items for each input sequence.
+               - num_items_for_embedding: Vocabulary size for item embedding (num unique items + 1 for padding).
+               - item_encoder: Fitted LabelEncoder for item IDs.
+    """
     filepath = os.path.join(project_root, base_filepath)
     if not os.path.exists(filepath):
-        print(f"오류: {filepath} 파일을 찾을 수 없습니다.")
-        print("더미 데이터 생성 시도 중... ('data/generate_dummy_data.py' 실행, generate_sequences=True)")
+        print(f"Error: Sequence data file not found at {filepath}.")
+        print("Attempting to generate dummy sequence data using 'data/generate_dummy_data.py'...")
         try:
             from data.generate_dummy_data import generate_dummy_data
+            # Ensure generate_sequences=True is called for dummy data generation
             generate_dummy_data(num_users=200, num_items=100, num_interactions=2000, generate_sequences=True)
-            print("더미 시퀀스 데이터 생성 완료.")
-            if not os.path.exists(filepath): # Check again
-                print(f"시퀀스 데이터 자동 생성 후에도 {filepath}를 찾을 수 없습니다.")
+            print("Dummy sequence data generation script executed.")
+            if not os.path.exists(filepath): # Re-check after generation attempt
+                print(f"Error: Dummy sequence file still not found at {filepath} after generation.")
                 return None, None, None, None
+            print("Dummy sequence data file should now be available.")
         except ImportError as e_import:
-            print(f"ImportError: 'generate_dummy_data' 임포트 실패. 오류: {e_import}")
+            print(f"ImportError: Failed to import 'generate_dummy_data'. Error: {e_import}")
             return None, None, None, None
         except Exception as e_general:
-            print(f"더미 데이터 생성 실패: {e_general}")
+            print(f"Error during dummy data generation: {e_general}")
             return None, None, None, None
-
 
     df_sequences = pd.read_csv(filepath)
     if df_sequences.empty or 'item_ids_sequence' not in df_sequences.columns:
-        print(f"오류: {filepath}가 비어있거나 'item_ids_sequence' 열이 없습니다.")
+        print(f"Error: File {filepath} is empty or missing 'item_ids_sequence' column.")
         return None, None, None, None
 
-    # Convert space-separated item strings to lists of integers
-    sequences = df_sequences['item_ids_sequence'].apply(lambda s: [int(i) for i in str(s).split(' ')]).tolist()
+    # Convert space-separated item ID strings in CSV to lists of integers
+    sequences_orig_ids = df_sequences['item_ids_sequence'].apply(lambda s: [int(i) for i in str(s).split(' ')]).tolist()
 
-    # Create item vocabulary and encoder
-    all_items = [item for seq in sequences for item in seq]
-    if not all_items:
-        print("오류: 시퀀스 데이터에서 아이템을 찾을 수 없습니다.")
+    # Create a vocabulary of all unique items present in the sequences
+    all_items_flat_list = [item for seq in sequences_orig_ids for item in seq]
+    if not all_items_flat_list:
+        print("Error: No items found in the sequences.")
         return None, None, None, None
 
+    # Use LabelEncoder to map original item IDs to 0-indexed integers
     item_encoder = LabelEncoder()
-    item_encoder.fit(all_items)
-    # Vocabulary size for embedding layer: number of unique items + 1 for padding (0)
-    num_unique_items_for_embedding = len(item_encoder.classes_) + 1
+    item_encoder.fit(all_items_flat_list)
 
-    # Transform sequences to encoded item indices (add 1 to all encoded indices to reserve 0 for padding)
-    encoded_sequences = [item_encoder.transform(s) + 1 for s in sequences]
+    # Vocabulary size for embedding layer: number of unique items + 1 for padding token (0)
+    # The padding token will have index 0. Actual items will have indices 1 to N.
+    num_items_for_embedding = len(item_encoder.classes_) + 1
 
-    X, y = [], []
+    # Transform sequences to encoded item indices. Add 1 to all encoded indices
+    # so that actual item indices start from 1, reserving 0 exclusively for padding.
+    encoded_sequences = [item_encoder.transform(s) + 1 for s in sequences_orig_ids]
+
+    # Create (input, target) pairs for training
+    # For a sequence [i1, i2, i3, i4]:
+    #   Input: [i1], Target: i2
+    #   Input: [i1, i2], Target: i3
+    #   Input: [i1, i2, i3], Target: i4
+    X_train_seqs, y_train_targets = [], []
     for seq in encoded_sequences:
-        for i in range(1, len(seq)):
-            input_seq = seq[:i] # Sequence up to item i-1
-            target_item = seq[i] # Item i is the target
-            X.append(input_seq)
-            y.append(target_item)
+        for i in range(1, len(seq)): # Start from 1 because we need at least one item as input
+            input_sub_sequence = seq[:i]    # Sequence up to item i-1 (exclusive of i)
+            target_item_label = seq[i]      # Item at index i is the target
+            X_train_seqs.append(input_sub_sequence)
+            y_train_targets.append(target_item_label)
 
-    if not X: # No training samples could be generated
-        print("오류: 학습 샘플(X,y 쌍)을 생성할 수 없습니다. 시퀀스 길이가 너무 짧을 수 있습니다.")
+    if not X_train_seqs:
+        print("Error: Could not generate any training samples (X, y pairs). "
+              "This might happen if all sequences have length 1 or less.")
         return None, None, None, None
 
-    X_padded = pad_sequences(X, maxlen=max_seq_len, padding='pre', truncating='pre', value=0)
-    y_array = np.array(y) # These are already item indices (1 to N_items_actual)
+    # Pad input sequences to `max_seq_len`
+    # 'pre' padding: add 0s at the beginning of sequences shorter than max_seq_len.
+    # 'pre' truncating: remove elements from the beginning for sequences longer than max_seq_len.
+    # `value=0`: use 0 as the padding value.
+    X_padded = pad_sequences(X_train_seqs, maxlen=max_seq_len, padding='pre', truncating='pre', value=0)
+    y_array = np.array(y_train_targets) # Target items are already 1-based encoded item indices
 
-    return X_padded, y_array, num_unique_items_for_embedding, item_encoder
+    print(f"Data loaded: {len(df_sequences)} original sequences, resulting in {len(X_padded)} training samples.")
+    return X_padded, y_array, num_items_for_embedding, item_encoder
 
 # --- SASRec Model Components ---
 class PositionalEmbedding(Layer):
+    """
+    Custom Keras layer for adding positional embeddings to item embeddings.
+    The position of an item in a sequence is important for sequential models.
+    """
     def __init__(self, max_seq_len, embed_dim, **kwargs):
         super().__init__(**kwargs)
         self.max_seq_len = max_seq_len
         self.embed_dim = embed_dim
-        # input_dim is max_seq_len + 1 because positions can range from 1 to max_seq_len.
-        # The 0th embedding could be for padding or a special token if needed,
-        # but SASRec typically uses 1-based positions for actual items.
-        self.pos_embeddings = Embedding(input_dim=max_seq_len + 1, output_dim=embed_dim)
+        # Embedding layer for positions. Input dimension is max_seq_len + 1
+        # because positions are 1-indexed (1 to max_seq_len).
+        # The 0th embedding can be considered for a padding position if needed,
+        # though typically not explicitly used if items at padding positions are masked.
+        self.pos_embeddings = Embedding(input_dim=max_seq_len + 1, output_dim=embed_dim, name=f"{self.name}_pos_emb_lookup")
 
-    def call(self, x): # x is the item embedding sequence, shape (batch, seq_len, embed_dim)
-        seq_len = tf.shape(x)[1]
-        # Create position indices from 1 up to seq_len
+    def call(self, x_item_embeddings): # x_item_embeddings has shape (batch_size, seq_len, embed_dim)
+        # Get the actual sequence length from the input item embeddings tensor
+        # (might be shorter than max_seq_len if not padded, or if masking is handled downstream)
+        seq_len = tf.shape(x_item_embeddings)[1]
+
+        # Create position indices: [1, 2, ..., seq_len]
         positions = tf.range(start=1, limit=seq_len + 1, delta=1)
-        embedded_positions = self.pos_embeddings(positions)
-        return embedded_positions # Shape: (seq_len, embed_dim) - will be broadcasted over batch
+        # Look up embeddings for these positions
+        embedded_positions = self.pos_embeddings(positions) # Shape: (seq_len, embed_dim)
+        # This will be added to item_embeddings, broadcasting over the batch dimension.
+        return embedded_positions
 
-    def get_config(self):
+    def get_config(self): # For model saving and loading
         config = super().get_config()
         config.update({
             "max_seq_len": self.max_seq_len,
@@ -146,6 +228,10 @@ class PositionalEmbedding(Layer):
         return config
 
 class TransformerBlock(Layer):
+    """
+    A single Transformer block, consisting of Multi-Head Self-Attention and a Feed-Forward Network.
+    Includes residual connections and layer normalization.
+    """
     def __init__(self, embed_dim, num_heads, ffn_units, dropout_rate, **kwargs):
         super().__init__(**kwargs)
         self.embed_dim = embed_dim
@@ -154,44 +240,50 @@ class TransformerBlock(Layer):
         self.dropout_rate = dropout_rate
 
         if embed_dim % num_heads != 0:
-            raise ValueError(f"임베딩 차원({embed_dim})은 헤드 수({num_heads})로 나누어 떨어져야 합니다.")
+            raise ValueError(
+                f"Embedding dimension ({embed_dim}) must be divisible by the number of attention heads ({num_heads})."
+            )
 
-        self.mha = MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim // num_heads, dropout=dropout_rate)
+        # Multi-Head Self-Attention layer
+        # key_dim = embed_dim // num_heads ensures projection heads have compatible dimensions.
+        self.mha = MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim // num_heads, dropout=dropout_rate, name=f"{self.name}_mha")
+
+        # Point-wise Feed-Forward Network (FFN)
         self.ffn = tf.keras.Sequential([
-            Dense(ffn_units, activation="relu"),
-            Dropout(dropout_rate),
-            Dense(embed_dim)
-        ])
-        self.layernorm1 = LayerNormalization(epsilon=1e-6)
-        self.layernorm2 = LayerNormalization(epsilon=1e-6)
-        self.dropout1 = Dropout(dropout_rate) # Dropout after MHA before Add&Norm
-        # self.dropout2 = Dropout(dropout_rate) # Dropout is already in FFN's definition
+            Dense(ffn_units, activation="relu", name=f"{self.name}_ffn_dense1"),
+            Dropout(dropout_rate, name=f"{self.name}_ffn_dropout"),
+            Dense(embed_dim, name=f"{self.name}_ffn_dense2") # Project back to embedding dimension
+        ], name=f"{self.name}_ffn")
 
-    def call(self, inputs, training=False, attention_mask=None, causal_mask=None):
-        # For SASRec, self-attention should be causal.
-        # The MHA layer can create a causal mask if use_causal_mask=True (TF 2.8+).
-        # Alternatively, a causal_mask can be passed.
-        # Here, we assume the `attention_mask` might include padding mask and also causal properties.
+        # Layer Normalization layers
+        self.layernorm1 = LayerNormalization(epsilon=1e-6, name=f"{self.name}_layernorm1")
+        self.layernorm2 = LayerNormalization(epsilon=1e-6, name=f"{self.name}_layernorm2")
 
-        # If a combined mask is needed:
-        # combined_mask = None
-        # if attention_mask is not None and causal_mask is not None:
-        #    combined_mask = tf.minimum(attention_mask, causal_mask) # Logical AND
-        # elif attention_mask is not None:
-        #    combined_mask = attention_mask
-        # elif causal_mask is not None:
-        #    combined_mask = causal_mask
+        # Dropout layer after MHA (before adding residual connection)
+        self.dropout_mha_output = Dropout(dropout_rate, name=f"{self.name}_mha_output_dropout")
 
-        attn_output = self.mha(query=inputs, value=inputs, key=inputs, attention_mask=causal_mask, training=training)
-        attn_output = self.dropout1(attn_output, training=training)
-        out1 = self.layernorm1(inputs + attn_output)
+    def call(self, inputs, training=False, attention_mask=None): # Renamed causal_mask to attention_mask for clarity
+        # `inputs` shape: (batch_size, seq_len, embed_dim)
+        # `attention_mask` is the causal mask to prevent attending to future positions.
+        # It should be shape (batch_size, seq_len, seq_len) where mask[b, i, j] is True if item j
+        # should be masked (not attended to) when computing representation for item i in batch b.
 
+        # Multi-Head Self-Attention sub-layer
+        # Query, Value, Key are all the same `inputs` for self-attention.
+        # The `attention_mask` ensures causality.
+        attn_output = self.mha(query=inputs, value=inputs, key=inputs, attention_mask=attention_mask, training=training)
+        attn_output_dropped = self.dropout_mha_output(attn_output, training=training)
+        # Add residual connection and apply Layer Normalization
+        out1 = self.layernorm1(inputs + attn_output_dropped)
+
+        # Feed-Forward Network sub-layer
         ffn_output = self.ffn(out1, training=training)
-        # No explicit dropout here as it's inside self.ffn definition
-        out2 = self.layernorm2(out1 + ffn_output)
+        # Add residual connection and apply Layer Normalization
+        # (Dropout is already part of self.ffn definition if needed after Dense layers there)
+        out2 = self.layernorm2(out1 + ffn_output) # Corrected: should be out1 + ffn_output
         return out2
 
-    def get_config(self):
+    def get_config(self): # For model saving and loading
         config = super().get_config()
         config.update({
             "embed_dim": self.embed_dim,
@@ -201,163 +293,241 @@ class TransformerBlock(Layer):
         })
         return config
 
+# --- SASRec Model Building Function ---
+# Time Complexity for one forward pass: Dominated by Transformer blocks.
+# Each block: O(MAX_SEQ_LENGTH^2 * EMBEDDING_DIM + MAX_SEQ_LENGTH * EMBEDDING_DIM * FFN_UNITS)
+# Total for NUM_BLOCKS: O(NUM_BLOCKS * (MAX_SEQ_LENGTH^2 * EMBEDDING_DIM + MAX_SEQ_LENGTH * EMBEDDING_DIM * FFN_UNITS))
 def build_sasrec_model(max_seq_len, num_items_for_embedding, embed_dim, num_blocks, num_heads, ffn_units, dropout_rate):
+    """
+    Builds the SASRec model architecture using Keras Functional API.
+    """
+    # Input layer for sequences of item indices (padded with 0s)
     input_seq = Input(shape=(max_seq_len,), name="input_sequence", dtype='int32')
 
-    item_embedding_layer = Embedding(input_dim=num_items_for_embedding, output_dim=embed_dim, name="item_embedding", mask_zero=True)
-    item_embs = item_embedding_layer(input_seq) # (batch, seq_len, embed_dim)
+    # Item Embedding Layer
+    # `mask_zero=True` tells subsequent layers to ignore padding tokens (0)
+    item_embedding_layer = Embedding(
+        input_dim=num_items_for_embedding, # Vocabulary size (num unique items + 1 for padding)
+        output_dim=embed_dim,
+        name="item_embedding",
+        mask_zero=True # Important for handling padded sequences
+    )
+    item_embs = item_embedding_layer(input_seq) # Shape: (batch_size, max_seq_len, embed_dim)
 
-    pos_embedding_layer = PositionalEmbedding(max_seq_len, embed_dim)
-    pos_embs = pos_embedding_layer(item_embs) # (seq_len, embed_dim)
+    # Positional Embedding Layer
+    pos_embedding_layer = PositionalEmbedding(max_seq_len, embed_dim, name="positional_embedding")
+    pos_embs = pos_embedding_layer(item_embs) # Shape: (max_seq_len, embed_dim)
 
-    seq_embs = item_embs + pos_embs # Add positional encoding (broadcasting pos_embs over batch)
-    seq_embs = Dropout(dropout_rate)(seq_embs)
+    # Add item embeddings and positional embeddings
+    # Positional embeddings are broadcasted across the batch dimension.
+    seq_embs = item_embs + pos_embs
+    seq_embs = Dropout(dropout_rate, name="input_dropout")(seq_embs)
 
-    # Causal mask for self-attention
-    # MHA expects mask shape (batch_size, Tq, Tv) or (batch_size, num_heads, Tq, Tv)
-    # Tq = target sequence length (output), Tv = source sequence length (input)
-    # For self-attention, Tq = Tv = max_seq_len. Use static max_seq_len for mask dimensions.
-    seq_len = max_seq_len
+    # --- Causal Self-Attention Mask ---
+    # This mask ensures that an item at position 'i' can only attend to items at positions 'j <= i'.
+    # It prevents the model from "seeing" future items during training for a given target.
+    # The mask should have True for positions that *should be masked* (i.e., not attended to).
+    # Keras MHA layer expects attention_mask shape (batch_size, Tq, Tv) or (batch_size, num_heads, Tq, Tv).
+    # For self-attention, Tq (target/query sequence length) = Tv (source/value sequence length) = max_seq_len.
 
-    # Causal mask: True for positions that should be masked (future positions).
-    # 1. Create a lower triangular matrix (diagonal and below are 1s, rest 0s).
-    lower_triangular = tf.linalg.band_part(tf.ones((seq_len, seq_len)), -1, 0)
-    # 2. Invert it so that upper triangular (future positions) are 1s (True) and others 0s (False).
-    causal_attention_mask = tf.cast(1.0 - lower_triangular, dtype=tf.bool)
-    # Reshape for MHA if needed, e.g. (1, seq_len, seq_len) or (1, 1, seq_len, seq_len)
-    # Keras MHA can often broadcast from (Tq, Tv). Let's keep it (seq_len, seq_len) first.
-    # No, MHA expects at least 3D for batch broadcasting: (batch_size, Tq, Tv)
-    # So, (1, seq_len, seq_len) is fine for broadcasting across batch & heads.
-    causal_attention_mask = causal_attention_mask[tf.newaxis, :, :]
+    # 1. Create a boolean matrix of shape (max_seq_len, max_seq_len)
+    #    `tf.linalg.band_part(tf.ones((L, L)), -1, 0)` creates a lower triangular matrix (1s on and below diagonal).
+    #    `1.0 - lower_triangular_matrix` inverts it, so future positions (upper triangle) are 1s.
+    #    `tf.cast(..., dtype=tf.bool)` converts to boolean (True for future positions).
+    causal_mask_matrix = tf.cast(
+        1.0 - tf.linalg.band_part(tf.ones((max_seq_len, max_seq_len)), -1, 0),
+        dtype=tf.bool
+    )
+    # Add a batch dimension for broadcasting: (1, max_seq_len, max_seq_len)
+    # This single mask will be broadcast across all samples in the batch and all attention heads.
+    causal_attention_mask_for_mha = causal_mask_matrix[tf.newaxis, :, :]
 
+    # The `mask_zero=True` in the Embedding layer automatically generates a padding mask.
+    # Keras's MultiHeadAttention layer is designed to correctly combine an explicit `attention_mask` (like our causal one)
+    # with the implicit padding mask propagated from the Embedding layer.
 
-    # Padding mask from the embedding layer
-    padding_mask = item_embedding_layer.compute_mask(input_seq) # Shape (batch_size, max_seq_len)
-    # Expand dims for MHA: (batch_size, 1, 1, max_seq_len) for from_storage_mask or (batch_size, 1, max_seq_len, 1) for to_storage_mask
-    # Or let MHA use it directly if it supports boolean masks of shape (batch_size, seq_len) to mask tokens.
-    # Keras MHA typically expects the attention_mask to be (batch_size, Tq, Tv).
-    # If padding_mask is (batch_size, Tv), expand it to (batch_size, 1, Tv) or (batch_size, Tq, Tv) by repeating.
-    # For this example, we'll pass the causal mask. MHA should also respect the mask from `mask_zero=True`.
-    # Simpler: Keras MHA uses the mask from `mask_zero=True` automatically.
-    # We only need to ensure the causal nature.
-    # The causal mask should make future positions unable to be attended to.
-    # So, for a query q_i, it can only attend to keys k_j where j <= i.
-    # The `causal_mask` created (lower triangular) allows this.
-    # MHA needs `True` for positions NOT to attend. So, `1 - causal_mask` for upper triangle.
-    # Let's use tf.newaxis for broadcasting: causal_mask[tf.newaxis, tf.newaxis, :, :] for (batch, num_heads, Tq, Tv)
-    # For now, let's pass the lower triangular. MHA layer with `use_causal_mask=True` in TF>2.8 is easier.
-    # The provided MHA layer in TF versions might handle boolean masks (batch_size, T_q, T_v) where True means "masked out".
-    # So, we want `mask[i, j] = True` if `j > i`. This is an upper triangular matrix (excluding diagonal).
-    # `tf.linalg.band_part(tf.ones((L, L)), 0, -1)` gives upper triangular. `tf.linalg.band_part(tf.ones((L,L)), -1, 0)` gives lower.
-    # `1.0 - tf.linalg.band_part(tf.ones((seq_len, seq_len)), -1, 0)` -> upper triangle (excluding diag) has 1s.
-    # `tf.cast(1.0 - tf.linalg.band_part(tf.ones((seq_len, seq_len)), -1, 0), dtype=tf.bool)`
-    # This is getting complex. A simpler way for this example if full causal masking in MHA is tricky:
-    # We will rely on the fact that we only use the *last output* for prediction.
-
+    # Transformer Blocks
     transformer_output = seq_embs
     for i in range(num_blocks):
-        # In a real SASRec, a proper causal mask is crucial here.
-        # Keras MHA layer uses the mask from `mask_zero=True` automatically for padding.
-        # For causality, if not using MHA's built-in causal option, it's complex.
-        # We'll proceed without explicit causal mask in MHA for this example's simplicity, (REMOVED THIS COMMENT)
-        # The causal_attention_mask is now passed to the TransformerBlock.
-        # The MHA layer in TransformerBlock will use this for causal attention.
-        # The padding mask from `mask_zero=True` in Embedding layer is automatically handled by Keras MHA.
-        transformer_output = TransformerBlock(embed_dim, num_heads, ffn_units, dropout_rate, name=f"transformer_block_{i}")(transformer_output, causal_mask=causal_attention_mask)
+        transformer_output = TransformerBlock(
+            embed_dim, num_heads, ffn_units, dropout_rate, name=f"transformer_block_{i+1}"
+        )(transformer_output, attention_mask=causal_attention_mask_for_mha) # Pass the causal mask
 
-    last_item_representation = transformer_output[:, -1, :]
+    # Use the representation of the *last item* in the input sequence for prediction.
+    # Due to 'pre' padding, the last actual item is at index -1 of the sequence.
+    # Its representation has captured information from all preceding items via self-attention.
+    last_item_representation = transformer_output[:, -1, :] # Shape: (batch_size, embed_dim)
 
-    logits = Dense(num_items_for_embedding, activation=None, name="output_logits")(last_item_representation)
+    # Output Layer: Predict scores (logits) for all possible next items.
+    # The number of units is `num_items_for_embedding` (vocab size including padding).
+    # No activation function here, as `SparseCategoricalCrossentropy(from_logits=True)` expects raw logits.
+    output_logits = Dense(num_items_for_embedding, activation=None, name="output_logits")(last_item_representation)
 
-    model = Model(inputs=input_seq, outputs=logits)
+    model = Model(inputs=input_seq, outputs=output_logits)
     return model
 
-def get_sasrec_recommendations(model, input_sequence_encoded_1based, item_encoder, num_items_embedding_dim, num_recommendations=5):
-    """Generates next-item recommendations for a given 1-based encoded input sequence."""
-    if not input_sequence_encoded_1based: # Check if list is empty
-        print("입력 시퀀스가 비어있어 추천을 생성할 수 없습니다.")
+# --- Recommendation Generation for a Given Sequence ---
+def get_sasrec_recommendations(model, input_sequence_encoded_1based, item_encoder, num_items_for_embedding, num_recommendations=5):
+    """
+    Generates next-item recommendations for a given 1-based encoded input sequence.
+
+    Args:
+        model: The trained SASRec Keras model.
+        input_sequence_encoded_1based (list of int): The user's current interaction sequence,
+                                                     with item IDs already encoded and 1-based.
+        item_encoder (LabelEncoder): Fitted item encoder to map back to original IDs.
+        num_items_for_embedding (int): Total number of items in embedding layer (vocab size + 1).
+        num_recommendations (int): Number of top recommendations to return.
+
+    Returns:
+        list: List of recommended items, each a dict {'item_id': original_id, 'score': predicted_score}.
+    """
+    if not input_sequence_encoded_1based: # Check if the input list is empty
+        print("Input sequence is empty. Cannot generate recommendations.")
         return []
 
-    padded_input_sequence = pad_sequences([input_sequence_encoded_1based], maxlen=MAX_SEQ_LENGTH, padding='pre', truncating='pre', value=0)
+    # Pad the input sequence to MAX_SEQ_LENGTH, using 'pre' padding with value 0.
+    padded_input_sequence = pad_sequences(
+        [input_sequence_encoded_1based], maxlen=MAX_SEQ_LENGTH, padding='pre', truncating='pre', value=0
+    )
 
-    predicted_scores = model.predict(padded_input_sequence, verbose=0)[0]
+    # Get model predictions (logits for all items in the vocabulary)
+    # Prediction Time Complexity for one sequence: O(MAX_SEQ_LENGTH^2 * EMBEDDING_DIM + ...) (dominated by Transformer)
+    predicted_logits = model.predict(padded_input_sequence, verbose=0)[0] # Get scores for the single input sequence
 
-    # Mask items already in the input sequence and padding token 0
-    predicted_scores[0] = -np.inf # Mask padding token
-    for item_idx_1based in input_sequence_encoded_1based:
-        if 0 < item_idx_1based < len(predicted_scores): # item_idx_1based is already the index for predicted_scores
-             predicted_scores[item_idx_1based] = -np.inf
+    # Mask items that should not be recommended:
+    # 1. The padding token (index 0)
+    predicted_logits[0] = -np.inf
 
-    top_n_item_indices_1based = np.argsort(predicted_scores)[-num_recommendations:][::-1]
+    # 2. Items already present in the input sequence (user has already interacted with them)
+    for item_idx_1based_in_input in input_sequence_encoded_1based:
+        if 0 < item_idx_1based_in_input < len(predicted_logits): # Check bounds
+             predicted_logits[item_idx_1based_in_input] = -np.inf # Mask by setting score to negative infinity
+
+    # Get indices of the top N items with highest scores (logits)
+    # `np.argsort` returns indices that would sort the array in ascending order.
+    # Slicing `[-num_recommendations:]` gets the top N largest.
+    # `[::-1]` reverses them to be in descending order of score.
+    top_n_item_indices_1based = np.argsort(predicted_logits)[-num_recommendations:][::-1]
 
     recommended_items = []
     for item_idx_1based in top_n_item_indices_1based:
-        if item_idx_1based == 0: continue # Skip padding item
-        # item_idx_1based is the value that was fed into embedding (1 to N_actual_items)
-        # item_encoder maps original_id to 0 to N_actual_items-1
-        original_item_id = item_encoder.inverse_transform([item_idx_1based -1])[0]
-        recommended_items.append({'item_id': original_item_id, 'score': predicted_scores[item_idx_1based]})
+        if item_idx_1based == 0: # Should be effectively filtered by -np.inf, but double-check
+            continue
+
+        # Convert 1-based index (used in model due to padding at 0) back to 0-based for item_encoder
+        item_idx_0based_for_encoder = item_idx_1based - 1
+
+        # Check if the index is valid for the encoder
+        if 0 <= item_idx_0based_for_encoder < len(item_encoder.classes_):
+            original_item_id = item_encoder.inverse_transform([item_idx_0based_for_encoder])[0]
+            recommended_items.append({'item_id': original_item_id, 'score': predicted_logits[item_idx_1based]})
+        else:
+            print(f"Warning: Skipping recommended item index {item_idx_1based} as it's out of bounds for item_encoder after adjustment.")
+
 
     return recommended_items
 
 # --- Main Execution ---
+# Training Time Complexity: O(EPOCHS * (N_train_samples / BATCH_SIZE) * Complexity_of_SASRec_Forward_Pass)
 if __name__ == "__main__":
-    print("--- SASRec Sequential Recommender 예제 시작 ---")
+    print("--- SASRec (Self-Attentive Sequential Recommendation) Example ---")
 
-    print("\n데이터 로드 및 전처리 중...")
+    print("\nLoading and preprocessing sequence data...")
     X_padded, y_array, num_items_for_embedding, item_encoder = load_sequences()
 
     if X_padded is not None and item_encoder is not None:
-        print(f"전처리된 입력 시퀀스 shape: {X_padded.shape}")
-        print(f"타겟 아이템 배열 shape: {y_array.shape}")
-        print(f"임베딩을 위한 고유 아이템 수 (패딩 포함): {num_items_for_embedding}")
+        print(f"Padded input sequences shape: {X_padded.shape}")
+        print(f"Target item array shape: {y_array.shape}")
+        print(f"Number of unique items for embedding (incl. padding): {num_items_for_embedding}")
 
-        print("\nSASRec 모델 구축 중...")
-        model = build_sasrec_model(MAX_SEQ_LENGTH, num_items_for_embedding, EMBEDDING_DIM, NUM_BLOCKS, NUM_HEADS, FFN_UNITS, DROPOUT_RATE)
+        print("\nBuilding SASRec model...")
+        model = build_sasrec_model(
+            MAX_SEQ_LENGTH,
+            num_items_for_embedding,
+            EMBEDDING_DIM,
+            NUM_BLOCKS,
+            NUM_HEADS,
+            FFN_UNITS,
+            DROPOUT_RATE
+        )
 
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE),
-                      loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-                      metrics=['accuracy'])
-        model.summary()
+        # Compile the model
+        # For predicting the next item (which is a class from N items), use SparseCategoricalCrossentropy.
+        # `from_logits=True` because our model outputs raw scores (logits), not probabilities (e.g., from softmax).
+        model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE),
+            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+            metrics=['accuracy'] # Accuracy of predicting the exact next item.
+        )
+        model.summary() # Print model architecture
 
-        print("\n모델 학습 중...")
-        history = model.fit(X_padded, y_array, epochs=EPOCHS, batch_size=BATCH_SIZE, verbose=1)
-        print("모델 학습 완료.")
+        print("\nTraining the model...")
+        history = model.fit(
+            X_padded,
+            y_array,
+            epochs=EPOCHS,
+            batch_size=BATCH_SIZE,
+            verbose=1 # Show training progress
+        )
+        print("Model training completed.")
 
+        # Example: Generate recommendations for a sample sequence
         if hasattr(item_encoder, 'classes_') and len(item_encoder.classes_) > 0:
+            # Try to get an example sequence from the original dummy data for a realistic test
             raw_sequences_df_path = os.path.join(project_root, 'data/dummy_sequences.csv')
+            example_input_sequence_orig_ids = []
             if os.path.exists(raw_sequences_df_path):
                 raw_sequences_df = pd.read_csv(raw_sequences_df_path)
-                if not raw_sequences_df.empty:
+                if not raw_sequences_df.empty and 'item_ids_sequence' in raw_sequences_df.columns:
+                    # Take the first sequence from the dummy data as an example
                     example_raw_sequence_str = raw_sequences_df['item_ids_sequence'].iloc[0]
-                    example_raw_sequence_orig_ids = [int(i) for i in example_raw_sequence_str.split(' ')]
+                    example_input_sequence_orig_ids = [int(i) for i in example_raw_sequence_str.split(' ')]
 
-                    known_items_in_sequence_orig_ids = [item for item in example_raw_sequence_orig_ids if item in item_encoder.classes_]
+            if not example_input_sequence_orig_ids: # Fallback if file loading failed or empty
+                print("\nWarning: Could not load example sequence from file, using a fallback sequence.")
+                # Ensure fallback items exist in item_encoder.classes_ or use encoded values directly
+                if len(item_encoder.classes_) >= 3: # Check if encoder knows at least 3 items
+                   example_input_sequence_orig_ids = item_encoder.classes_[:min(3, MAX_SEQ_LENGTH-1)].tolist() # Take first 3 known items
+                else:
+                   example_input_sequence_orig_ids = [] # Cannot form a meaningful sequence
 
-                    if len(known_items_in_sequence_orig_ids) >= MAX_SEQ_LENGTH // 2 and len(known_items_in_sequence_orig_ids) > 0 :
-                        # Use a portion of the sequence, e.g., last few items up to MAX_SEQ_LENGTH-1
-                        input_for_recs_orig_ids = known_items_in_sequence_orig_ids[-(MAX_SEQ_LENGTH-1):]
+            if example_input_sequence_orig_ids:
+                 # Filter out items not known to the encoder (e.g. if dummy data changed)
+                known_items_in_sequence_orig_ids = [item for item in example_input_sequence_orig_ids if item in item_encoder.classes_]
+
+                if known_items_in_sequence_orig_ids:
+                    # Take a portion of the sequence, e.g., last few items up to MAX_SEQ_LENGTH-1, as input to predict the next
+                    # The model expects an input sequence to predict what comes *after* it.
+                    input_for_recs_orig_ids = known_items_in_sequence_orig_ids[:MAX_SEQ_LENGTH-1] # Max input len is MAX_SEQ_LENGTH-1 to predict next
+                    if input_for_recs_orig_ids: # Ensure it's not empty after filtering and slicing
                         input_for_recs_encoded_1based = item_encoder.transform(input_for_recs_orig_ids) + 1
 
-                        print(f"\n입력 시퀀스 (원본 ID): {input_for_recs_orig_ids} -> (인코딩된 1-based ID): {input_for_recs_encoded_1based.tolist()}")
+                        print(f"\nExample: Input sequence for recommendation (Original IDs): {input_for_recs_orig_ids}")
+                        print(f"Encoded 1-based input sequence: {input_for_recs_encoded_1based.tolist()}")
 
-                        recommendations = get_sasrec_recommendations(model, input_for_recs_encoded_1based.tolist(), item_encoder, num_items_for_embedding)
+                        recommendations = get_sasrec_recommendations(
+                            model,
+                            input_for_recs_encoded_1based.tolist(),
+                            item_encoder,
+                            num_items_for_embedding
+                        )
 
-                        print("\n추천된 다음 아이템:")
+                        print("\nRecommended next items:")
                         if recommendations:
                             for rec in recommendations:
-                                print(f"- 아이템 {rec['item_id']}: 예측 점수 {rec['score']:.2f}")
+                                print(f"- Item ID (original): {rec['item_id']}, Predicted Score (logit): {rec['score']:.3f}")
                         else:
-                            print("추천할 아이템이 없습니다.")
+                            print("No recommendations could be generated for the example sequence.")
                     else:
-                        print("\n예시 추천을 위한 충분한 길이의 사용자 시퀀스를 찾을 수 없거나, 시퀀스 내 아이템이 인코더에 없습니다.")
+                        print("\nWarning: Example input sequence became empty after filtering for known items or slicing.")
                 else:
-                    print("\n시퀀스 파일이 비어있어 예시 추천을 생성할 수 없습니다.")
+                    print("\nWarning: None of the items in the example sequence are known to the item encoder.")
             else:
-                print(f"\n시퀀스 파일({raw_sequences_df_path})을 찾을 수 없어 예시 추천을 생성할 수 없습니다.")
+                print("\nCould not prepare a valid example input sequence for recommendation.")
         else:
-            print("\n아이템 인코더가 준비되지 않아 예시 추천을 생성할 수 없습니다.")
+            print("\nItem encoder not available or has no classes; cannot generate example recommendations.")
     else:
-        print("\n데이터 로드에 실패하여 예제를 실행할 수 없습니다.")
+        print("\nData loading failed. Cannot proceed with the SASRec example.")
 
-    print("\n--- SASRec 예제 실행 완료 ---")
+    print("\n--- SASRec Example Finished ---")

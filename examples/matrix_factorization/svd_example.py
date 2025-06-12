@@ -3,39 +3,58 @@ import pandas as pd
 import os
 import sys
 from surprise import Dataset, Reader, SVD
-from surprise.model_selection import train_test_split
+# train_test_split is not used in this specific example but often useful
+# from surprise.model_selection import train_test_split
 from collections import defaultdict
 
 # --- Singular Value Decomposition (SVD) for Recommendations: Basic Explanation ---
-# Singular Value Decomposition (SVD) is a matrix factorization technique widely used in recommendation systems.
-# The core idea is to decompose the sparse user-item interaction matrix (e.g., ratings) into
-# lower-dimensional matrices representing latent factors of users and items.
+# Matrix Factorization, particularly variants inspired by SVD, is a popular class of algorithms
+# for recommendation systems. The core idea is to decompose the sparse user-item interaction
+# matrix (e.g., ratings) into lower-dimensional matrices representing latent factors (hidden features)
+# of users and items.
 #
-# How it works (in the context of Surprise's SVD, which is often a variant like Funk SVD or SVD++):
-# 1. User-Item Interaction Data: We start with data of (user, item, rating) triples.
-# 2. Latent Factors: Assume there are 'k' latent factors (e.g., genres, user preferences for these genres).
-#    - Each user is represented by a k-dimensional vector (user factors).
-#    - Each item is represented by a k-dimensional vector (item factors).
-# 3. Prediction: The predicted rating for a user 'u' and an item 'i' is typically calculated as the
-#    dot product of their latent factor vectors: pred(u, i) = p_u^T * q_i.
-#    More advanced SVD variants also incorporate biases: pred(u, i) = global_mean + bias_user + bias_item + p_u^T * q_i.
-# 4. Training: The model learns these latent factor vectors and biases by minimizing the error
-#    (e.g., Root Mean Squared Error - RMSE) between predicted ratings and actual ratings in the training data.
-#    This is often done using stochastic gradient descent (SGD).
+# How it works (specifically for Surprise's SVD, often a Funk SVD or SVD++ variant):
+# 1. User-Item Interaction Data: Input is typically a list of (user_id, item_id, rating) triples.
+# 2. Latent Factor Model:
+#    - We assume there are 'k' latent factors that capture underlying properties (e.g., for movies:
+#      action level, comedy content, romantic elements; for users: preference for these aspects).
+#    - Each user 'u' is associated with a k-dimensional vector p_u (user factors).
+#    - Each item 'i' is associated with a k-dimensional vector q_i (item factors).
+# 3. Rating Prediction:
+#    The predicted rating r_ui for user 'u' and item 'i' is often modeled as:
+#    r_ui_predicted = μ + b_u + b_i + p_u^T * q_i
+#    Where:
+#      - μ (mu): Global average rating across all items.
+#      - b_u: User bias (how this user tends to rate compared to the average).
+#      - b_i: Item bias (how this item tends to be rated compared to the average).
+#      - p_u^T * q_i: The dot product of user and item factor vectors, capturing the interaction
+#        between user preferences and item characteristics in the latent space.
+#    Note: The SVD algorithm in Surprise is not the "pure" mathematical SVD but rather a model
+#    inspired by it, optimized for recommendation tasks (predicting known ratings).
+#
+# 4. Training (Learning Parameters):
+#    The model parameters (μ, b_u, b_i, p_u, q_i for all users and items) are learned by minimizing
+#    an objective function. This function usually consists of the sum of squared errors between
+#    predicted ratings and actual known ratings, plus regularization terms to prevent overfitting.
+#    Optimization is typically performed using Stochastic Gradient Descent (SGD) or Alternating Least Squares (ALS).
+#    Surprise's SVD uses SGD by default.
 #
 # Pros:
-# - Handles Sparsity: SVD can often generalize better than neighborhood-based CF methods on sparse data
-#   because it learns underlying latent features.
-# - Compact Representation: User and item factors provide a lower-dimensional representation.
-# - Can capture complex relationships: Latent factors might represent underlying characteristics
-#   that are not explicitly available in metadata.
+# - Handles Sparsity Well: By learning latent factors, SVD can generalize from known ratings to predict
+#   unknown ratings, often performing better than neighborhood-based CF on sparse data.
+# - Compact Representation: User and item factors provide a lower-dimensional, dense representation.
+# - Captures Complex Relationships: Latent factors can implicitly capture complex user preferences
+#   and item attributes, even those not explicitly present in metadata.
+# - Scalability: While training can be intensive, prediction is relatively fast once factors are learned.
 #
 # Cons:
-# - Interpretability: The latent factors learned by SVD are often not directly interpretable.
-# - Cold-Start for New Users/Items: If a user or item has no ratings, their latent factors cannot be
-#   learned directly. Some heuristics or content-based approaches might be needed as a fallback.
-# - Training Complexity: Training can be computationally intensive for very large datasets, though
-#   efficient algorithms exist.
+# - Interpretability: The learned latent factors are often not directly interpretable in human terms.
+# - Cold-Start Problem:
+#   - New Users: If a user has no ratings, their user factor vector p_u cannot be learned.
+#   - New Items: If an item has no ratings, its item factor vector q_i cannot be learned.
+#   Fallbacks (e.g., content-based features, average ratings) are needed for these cases.
+# - Training Complexity: Training can be computationally intensive for very large datasets.
+#   Complexity is roughly O(N_interactions * N_factors * N_epochs) for SGD.
 # ---
 
 # Dynamically add project root to sys.path for module imports
@@ -43,161 +62,200 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 if project_root not in sys.path:
     sys.path.insert(0, project_root) # Insert at the beginning for priority
 
+# --- Data Loading for Surprise ---
+# Time Complexity: O(N_interactions) for reading CSV and loading into Surprise Dataset.
 def load_data_for_surprise(base_filepath='data/dummy_interactions.csv'):
     """
-    Loads data from a CSV file into a Surprise Dataset.
-    The CSV file must be in the format: user, item, rating.
-    Handles path relative to project root.
+    Loads interaction data from a CSV file into a Surprise Dataset object.
+    The CSV file must contain columns for user ID, item ID, and rating.
+    Handles file path relative to the project root and attempts dummy data generation if needed.
+
+    Args:
+        base_filepath (str): Path to the CSV data file, relative to the project root if starts with 'data/'.
+
+    Returns:
+        surprise.Dataset: A Dataset object ready for use with Surprise algorithms, or None on failure.
     """
-    # Construct absolute path to data file if a relative path is given
+    filepath = base_filepath
+    # Construct absolute path if base_filepath is a known relative path pattern
     if not os.path.isabs(base_filepath) and base_filepath.startswith('data/'):
         filepath = os.path.join(project_root, base_filepath)
-    else:
-        filepath = base_filepath # Assume it's already an absolute path or a different relative one
 
     if not os.path.exists(filepath):
-        print(f"오류: {filepath} 파일을 찾을 수 없습니다.")
-        # Check if the missing file is the specific dummy data file we can generate
-        if filepath.endswith('data/dummy_interactions.csv'): # Check against the absolute path
-            print("더미 데이터 생성 시도 중... ('data/generate_dummy_data.py' 실행)")
+        print(f"Error: Data file not found at {filepath}.")
+        # Specifically check if it's the default dummy data path to offer generation
+        if filepath.endswith('data/dummy_interactions.csv'):
+            print("Attempting to generate dummy data using 'data/generate_dummy_data.py'...")
             try:
                 from data.generate_dummy_data import generate_dummy_data
                 generate_dummy_data()
-                print("더미 데이터 생성 완료.")
-                if not os.path.exists(filepath): # Check again after generation
-                    print(f"데이터 자동 생성 후에도 {filepath}를 찾을 수 없습니다.")
+                print("Dummy data generation script executed.")
+                if not os.path.exists(filepath): # Re-check after generation attempt
+                    print(f"Error: Dummy data file still not found at {filepath} after generation attempt.")
                     return None
+                print("Dummy data file should now be available.")
             except ImportError as e_import:
-                print(f"ImportError: 'generate_dummy_data' 임포트 실패. 오류: {e_import}")
+                print(f"ImportError: Failed to import 'generate_dummy_data'. Error: {e_import}")
                 return None
             except Exception as e_general:
-                print(f"더미 데이터 생성 실패: {e_general}")
+                print(f"Error during dummy data generation: {e_general}")
                 return None
         else:
-            return None # Not the specific dummy file, or some other path issue
+            # The missing file is not the one we know how to generate
+            return None
 
-    # Surprise Reader an object that knows how to parse the file or dataframe
-    # We need to specify the rating_scale
-    reader = Reader(rating_scale=(1, 5)) # Assuming ratings are from 1 to 5
+    # The Reader object is used to parse the file or DataFrame.
+    # We need to define the rating_scale (e.g., 1-5 stars).
+    reader = Reader(rating_scale=(1, 5)) # Adjust if your rating scale is different
 
-    # Load data from pandas DataFrame
-    df = pd.read_csv(filepath)
-    # Ensure columns are in the order: user, item, rating for Surprise
-    if not ('user_id' in df.columns and 'item_id' in df.columns and 'rating' in df.columns):
-        print("오류: CSV 파일에 'user_id', 'item_id', 'rating' 열이 필요합니다.")
+    try:
+        df = pd.read_csv(filepath)
+        # Ensure required columns exist. Surprise expects columns in order: user, item, rating.
+        required_cols = ['user_id', 'item_id', 'rating']
+        if not all(col in df.columns for col in required_cols):
+            print(f"Error: CSV file must contain the columns: {', '.join(required_cols)}.")
+            return None
+
+        # Load the DataFrame into a Surprise Dataset.
+        # Only these three columns are used by Surprise.
+        data = Dataset.load_from_df(df[['user_id', 'item_id', 'rating']], reader)
+        return data
+    except Exception as e:
+        print(f"Error loading data into Surprise Dataset: {e}")
         return None
 
-    data = Dataset.load_from_df(df[['user_id', 'item_id', 'rating']], reader)
-    return data
-
+# --- Top-N Recommendation Generation ---
 def get_top_n_recommendations(predictions, n=10):
     """
-    Return the top-N recommendation for each user from a set of predictions.
-    Args:
-        predictions(list of Prediction objects): The list of predictions, as
-            returned by the test method of an algorithm.
-        n(int): The number of recommendation to output for each user. Default
-            is 10.
-    Returns:
-    A dict where keys are user (raw) ids and values are lists of tuples:
-        [(raw item id, rating estimation), ...] of size n.
-    """
-    # First map the predictions to each user.
-    top_n = defaultdict(list)
-    for uid, iid, true_r, est, _ in predictions: # uid, iid are raw ids
-        top_n[uid].append((iid, est))
+    Extracts the top-N recommendations for each user from a list of Surprise predictions.
 
-    # Then sort the predictions for each user and retrieve the k highest ones.
+    Args:
+        predictions (list of surprise.Prediction objects): A list of predictions,
+            typically generated by an algorithm's `test` method or multiple `predict` calls.
+        n (int): The number of recommendations to return for each user.
+
+    Returns:
+        defaultdict: A dictionary where keys are user (raw) IDs and values are lists of
+                     (raw_item_id, estimated_rating) tuples, sorted by estimated_rating.
+    """
+    # Map predictions to each user.
+    top_n = defaultdict(list)
+    for pred in predictions:
+        # pred attributes: uid (raw user id), iid (raw item id), r_ui (true rating, often None for prediction), est (estimated rating)
+        top_n[pred.uid].append((pred.iid, pred.est))
+
+    # Sort the predictions for each user by estimated rating (descending) and retrieve the top n.
     for uid, user_ratings in top_n.items():
         user_ratings.sort(key=lambda x: x[1], reverse=True)
         top_n[uid] = user_ratings[:n]
-
     return top_n
 
-# 메인 실행 함수
+# --- Main Execution Block ---
 if __name__ == "__main__":
-    print("--- SVD (Singular Value Decomposition) 예제 시작 (Surprise 라이브러리 사용) ---")
+    print("--- SVD (Matrix Factorization) Example using Surprise library ---")
 
-    data_file_path = 'data/dummy_interactions.csv' # Relative to project root
+    data_file_path = 'data/dummy_interactions.csv' # Path relative to project root
 
-    # 1. 데이터 로드
-    print(f"\n데이터 로드 중 ({data_file_path})...")
+    # 1. Load Data using Surprise Reader and Dataset
+    print(f"\nLoading data from '{data_file_path}' for Surprise...")
     data = load_data_for_surprise(base_filepath=data_file_path)
 
     if data:
-        # 2. 학습 데이터셋 구축 (Surprise는 전체 데이터를 사용하여 Trainset을 만듭니다)
+        # 2. Build Full Trainset
+        # For this example, we'll train on the whole dataset.
+        # In a real scenario, you'd split into train/test sets (e.g., using train_test_split from Surprise).
         trainset = data.build_full_trainset()
-        print("데이터 로드 및 학습 데이터셋 구축 완료.")
+        print("Data loaded and full training set built successfully.")
 
-        # 3. SVD 모델 학습
-        print("\nSVD 모델 학습 중...")
-        # n_factors: 잠재 요인의 수, n_epochs: SGD 반복 횟수, random_state: 재현성을 위한 시드
+        # 3. Train SVD Model
+        # Time Complexity for training: O(N_interactions * N_factors * N_epochs)
+        print("\nTraining SVD model...")
+        # SVD Parameters:
+        # - n_factors: Number of latent factors (k in the explanation). Default is 100.
+        # - n_epochs: Number of iterations of the SGD optimization. Default is 20.
+        # - biased: If True (default), the model includes biases (μ, b_u, b_i). This is generally recommended.
+        # - random_state: For reproducibility.
         algo = SVD(n_factors=50, n_epochs=20, biased=True, random_state=42)
         algo.fit(trainset)
-        print("모델 학습 완료.")
+        print("SVD model training completed.")
 
-        # 4. 특정 사용자에 대한 추천 생성
-        #   a. 해당 사용자가 아직 평가하지 않은 아이템 목록 가져오기
-        #   b. 각 아이템에 대해 평점 예측
-        #   c. 예측 평점이 높은 순으로 정렬하여 추천
+        # 4. Generate Top-N Recommendations for a Specific User
+        # This involves:
+        #  a. Identifying all items the user hasn't rated yet.
+        #  b. Predicting ratings for these unrated items using the trained model.
+        #  c. Selecting the items with the highest predicted ratings.
 
-        target_user_raw_id = None
+        target_user_raw_id = None # Will be determined from the loaded data
         try:
-            # Use pandas to quickly get a list of unique user IDs from the original data file
-            # This ensures we pick a user that actually exists in our dataset
-            df_interactions = pd.read_csv(os.path.join(project_root, data_file_path))
-            if not df_interactions.empty:
-                # Get the first user ID from the unique list of user_ids
-                target_user_raw_id = df_interactions['user_id'].unique()[0]
+            # Load the original CSV again just to get a list of unique user IDs.
+            # This ensures we pick a user ID that actually exists in our dataset for demonstration.
+            # In a real application, you'd get the target user ID from your application context.
+            df_interactions_for_user_selection = pd.read_csv(os.path.join(project_root, data_file_path))
+            if not df_interactions_for_user_selection.empty:
+                target_user_raw_id = df_interactions_for_user_selection['user_id'].unique()[0]
+                # Ensure it's a string if your IDs are strings, or int if they are ints.
+                # Surprise handles raw IDs as they are provided (str, int).
             else:
-                print("더미 데이터 파일이 비어있습니다. 추천을 생성할 사용자를 선택할 수 없습니다.")
+                print("Warning: Interaction data file is empty. Cannot select a target user for recommendations.")
         except FileNotFoundError:
-             print(f"{data_file_path} 파일을 찾을 수 없습니다. 먼저 데이터를 생성해주세요.")
+             print(f"Error: Could not find '{data_file_path}' to select a target user. Please ensure dummy data exists.")
         except IndexError:
-             print("더미 데이터에서 사용자 ID를 찾을 수 없습니다. 데이터가 올바르게 생성되었는지 확인해주세요.")
+             print("Error: No user IDs found in the dummy data. Check data generation.")
+
+        # Convert to string if it's not, to match how Surprise might store it internally if loaded from mixed-type raw ids
+        # However, Surprise generally preserves original ID types. For dummy data, they are usually integers.
+        # Let's assume IDs from CSV are integers for this dummy data.
 
         if target_user_raw_id is not None:
-            print(f"\n사용자 ID {target_user_raw_id} (원래 ID)에 대한 추천 아이템 생성 중...")
+            print(f"\nGenerating top-N recommendations for User ID (raw): {target_user_raw_id}...")
 
-            # 사용자가 이미 평가한 아이템 가져오기 (학습 세트 기준)
-            rated_items_raw_ids = set()
+            # Get items the user has already rated (from the trainset)
+            rated_item_raw_ids = set()
             try:
+                # Convert raw user ID to inner ID used by Surprise
                 target_user_inner_id = trainset.to_inner_uid(target_user_raw_id)
-                rated_items_inner_ids = [item_inner_id for (item_inner_id, _) in trainset.ur[target_user_inner_id]]
-                rated_items_raw_ids = {trainset.to_raw_iid(inner_id) for inner_id in rated_items_inner_ids}
+                # Get (inner_item_id, rating) tuples for this user
+                user_ratings_inner = trainset.ur[target_user_inner_id]
+                # Convert inner item IDs back to raw item IDs
+                rated_item_raw_ids = {trainset.to_raw_iid(inner_iid) for (inner_iid, _rating) in user_ratings_inner}
+                print(f"User {target_user_raw_id} has rated {len(rated_item_raw_ids)} items. These will be excluded from recommendations.")
             except ValueError:
-                print(f"사용자 ID {target_user_raw_id}는 학습 데이터에 없어 평가한 아이템 목록을 가져올 수 없습니다 (이미 평가한 아이템은 추천에서 제외됩니다).")
+                # This happens if the target_user_raw_id is not in the trainset (e.g., new user)
+                print(f"Warning: User ID {target_user_raw_id} not found in the training set. "
+                      "Assuming no items rated, so all items are candidates for recommendation.")
 
-            # 모든 아이템 ID 가져오기 (학습 세트 기준)
-            all_items_raw_ids_in_trainset = {trainset.to_raw_iid(inner_id) for inner_id in trainset.all_items()}
+            # Get all unique item IDs present in the training set
+            all_items_in_trainset_raw_ids = {trainset.to_raw_iid(inner_iid) for inner_iid in trainset.all_items()}
 
-            # 추천 대상 아이템: 학습 세트에 있는 전체 아이템 중 사용자가 아직 평가하지 않은 아이템
-            items_to_predict = [iid for iid in all_items_raw_ids_in_trainset if iid not in rated_items_raw_ids]
+            # Identify items to predict: all items in trainset MINUS items already rated by the user
+            items_to_predict_raw_ids = [iid for iid in all_items_in_trainset_raw_ids if iid not in rated_item_raw_ids]
 
-            if not items_to_predict:
-                print(f"사용자 {target_user_raw_id}는 이미 모든 (학습세트 내) 아이템을 평가했거나, 추천할 새로운 아이템이 없습니다.")
+            if not items_to_predict_raw_ids:
+                print(f"User {target_user_raw_id} has already rated all items in the training set, or no new items to recommend.")
             else:
-                # 예측 수행
+                # Generate predictions for these unrated items
+                # Time Complexity for N predictions: O(N * N_factors)
+                print(f"Predicting ratings for {len(items_to_predict_raw_ids)} unrated items for user {target_user_raw_id}...")
                 user_predictions = []
-                for item_raw_id in items_to_predict:
-                    # uid, iid는 raw id여야 합니다.
+                for item_raw_id in items_to_predict_raw_ids:
+                    # algo.predict() takes raw user and item IDs
                     prediction = algo.predict(uid=target_user_raw_id, iid=item_raw_id)
                     user_predictions.append(prediction)
 
-                # 상위 N개 추천 가져오기
+                # Extract top-N recommendations from the predictions
+                # Time Complexity for sorting: O(N_predictions * log(N_predictions))
                 top_recommendations = get_top_n_recommendations(user_predictions, n=5)
 
                 if top_recommendations.get(target_user_raw_id):
-                    print(f"\n사용자 {target_user_raw_id}를 위한 추천 아이템 목록 (SVD):")
+                    print(f"\nTop 5 recommendations for User {target_user_raw_id} (SVD based):")
                     for item_raw_id, estimated_rating in top_recommendations[target_user_raw_id]:
-                        print(f"- 아이템 {item_raw_id}: 예상 평점 {estimated_rating:.2f}")
+                        print(f"- Item ID (raw): {item_raw_id}, Predicted Rating: {estimated_rating:.3f}")
                 else:
-                    print("추천할 아이템을 찾지 못했습니다.")
+                    print(f"No recommendations could be generated for User {target_user_raw_id}.")
         else:
-            if data: # Only print this if data loading itself was successful
-                print("\n추천을 생성할 대상 사용자를 결정하지 못했습니다.")
-
+            if data: # Only print if data loading itself was successful
+                print("\nCould not determine a target user for generating recommendations.")
     else:
-        print("\n데이터 로드에 실패하여 예제를 실행할 수 없습니다.")
+        print("\nData loading failed. Cannot proceed with the SVD example.")
 
-    print("\n--- SVD 예제 실행 완료 ---")
+    print("\n--- SVD Example Finished ---")
