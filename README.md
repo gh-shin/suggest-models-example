@@ -14,6 +14,7 @@
         * [딥러닝 기반 추천 (DNN with Embeddings)](#딥러닝-기반-추천-dnn-with-embeddings-예제)
         * [SASRec (Self-Attentive Sequential Recommendation)](#sasrec-self-attentive-sequential-recommendation-예제)
         * [Two-Tower Hybrid Recommendation](#two-tower-hybrid-recommendation-예제)
+        * [LightGCN (Light Graph Convolution Network - TensorFlow/Keras)](#lightgcn-light-graph-convolution-network---tensorflowkeras-예제)
     4. [문서화 및 `README.md` 업데이트](#4-문서화-및-readmemd-업데이트) (본 문서)
     5. [테스트](#5-테스트)
 4. [저장소 디렉토리 구조](#저장소-디렉토리-구조)
@@ -55,6 +56,7 @@ numpy==1.26.4
 surprise
 tensorflow
 pytest
+scipy
 ```
 
 #### 2. 데이터 준비
@@ -159,6 +161,19 @@ pytest
 *   **참고:** 자세한 설명은 스크립트 내 주석을 참고하십시오.
 
 ---
+##### LightGCN (Light Graph Convolution Network - TensorFlow/Keras) 예제
+*   **파일:** `examples/gnn/lightgcn_tf_example.py`
+*   **모델:** Light Graph Convolution Network (LightGCN) - TensorFlow/Keras 사용
+*   **목적:** 사용자-아이템 상호작용을 이분 그래프(bipartite graph)로 모델링하고, 그래프 컨볼루션을 통해 학습된 사용자 및 아이템 임베딩을 활용하여 추천을 생성하는 방식을 시연합니다. LightGCN은 GCN에서 특징 변환 및 비선형 활성화 함수를 제거하여 단순화한 모델입니다.
+*   **실행 방법:** `python examples/gnn/lightgcn_tf_example.py`
+*   **예상 출력:** 모델 구조 요약 (Keras 모델 서브클래싱 사용 시 학습 후 출력), BPR 손실을 사용한 학습 과정 (에포크별 손실 값), 그리고 샘플 사용자에 대한 상위 5개 추천 아이템 ID와 예측된 선호도 점수를 출력합니다.
+*   **모델 개요:**
+    *   *장점:* 단순성과 효율성, 많은 추천 벤치마크에서 강력한 성능, 고차원 연결성 포착 가능.
+    *   *단점:* 너무 많은 레이어 사용 시 과도한 평탄화(over-smoothing) 문제 발생 가능, 그래프 구성 및 정규화에 주의 필요.
+*   **성능:** 학습 시간은 에포크 수, 임베딩 차원, 레이어 수, 그리고 사용자-아이템 상호작용 수에 따라 달라집니다. 각 GCN 레이어의 전파는 희소 행렬 곱셈으로 효율적으로 수행될 수 있습니다.
+*   **참고:** 자세한 설명은 스크립트 내 주석을 참고하십시오. PyTorch Geometric을 사용한 LightGCN 예제도 계획되었으나, 라이브러리 설치 공간 제약으로 인해 현재 버전에서는 보류되었습니다.
+
+---
 
 #### 4. 문서화 및 `README.md` 업데이트
 본 문서는 각 예제 파일에 대한 설명과 사용 지침을 포함하도록 업데이트되었습니다.
@@ -189,6 +204,8 @@ pytest -v
 │   │   └── tfidf_example.py      # TF-IDF 기반 콘텐츠 추천 예제
 │   ├── deep_learning/
 │   │   └── dnn_recommender.py    # DNN 기반 추천 모델 예제
+│   ├── gnn/
+│   │   └── lightgcn_tf_example.py # LightGCN (TensorFlow/Keras) 예제
 │   ├── hybrid/
 │   │   └── two_tower_hybrid_example.py # 투-타워 하이브리드 추천 모델 예제
 │   ├── matrix_factorization/

@@ -18,8 +18,9 @@ example_scripts = [
     "examples/matrix_factorization/svd_example.py",
     "examples/content_based/tfidf_example.py",
     "examples/deep_learning/dnn_recommender.py",
-    "examples/sequential/transformer_sasrec_example.py", # New
-    "examples/hybrid/two_tower_hybrid_example.py",   # New
+    "examples/sequential/transformer_sasrec_example.py",
+    "examples/hybrid/two_tower_hybrid_example.py",
+    "examples/gnn/lightgcn_tf_example.py", # New addition
 ]
 
 @pytest.mark.parametrize("script_path_rel", example_scripts)
@@ -47,7 +48,14 @@ def test_run_example_script(script_path_rel):
     # For dnn_recommender, ensure TF doesn't log too much to stderr making it look like an error
     # Also, ensure consistent behavior for other scripts by starting with a clean copy of env.
     env = os.environ.copy()
-    if "dnn_recommender.py" in script_path_rel or "transformer_sasrec_example.py" in script_path_rel or "two_tower_hybrid_example.py" in script_path_rel:
+    # Apply TF settings for all TF based scripts
+    tf_scripts = [
+        "dnn_recommender.py",
+        "transformer_sasrec_example.py",
+        "two_tower_hybrid_example.py",
+        "lightgcn_tf_example.py"
+    ]
+    if any(tf_script in script_path_rel for tf_script in tf_scripts):
         env["TF_CPP_MIN_LOG_LEVEL"] = "2" # Suppress TensorFlow INFO and WARNING logs
         # On some systems, KMP_DUPLICATE_LIB_OK can be needed for TensorFlow if OpenMP libs clash
         env["KMP_DUPLICATE_LIB_OK"]="TRUE"
@@ -112,3 +120,5 @@ def test_run_example_script(script_path_rel):
         assert "SASRec 예제 실행 완료" in process.stdout
     elif "two_tower_hybrid_example.py" in script_path_rel:
         assert "Two-Tower Hybrid Recommender 예제 실행 완료" in process.stdout
+    elif "lightgcn_tf_example.py" in script_path_rel:
+        assert "LightGCN (TensorFlow/Keras) 예제 실행 완료" in process.stdout
