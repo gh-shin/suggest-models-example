@@ -259,7 +259,14 @@ pytest -v
 ```
 테스트는 다음을 포함합니다:
 - `tests/test_data_generation.py`: 더미 데이터 생성 스크립트의 정상 동작 및 파일 생성 여부 검증 (기본 파일 및 시퀀스 파일 포함).
-- `tests/test_example_scripts.py`: 모든 예제 스크립트가 오류 없이 실행되고, 예상되는 형태의 추천 관련 출력을 생성하는지 검증.
+- `tests/test_collaborative_filtering.py`: 협업 필터링 예제 스크립트 테스트.
+- `tests/test_content_based.py`: 콘텐츠 기반 필터링 예제 스크립트 테스트.
+- `tests/test_deep_learning.py`: 딥러닝 추천 예제 스크립트 테스트.
+- `tests/test_gnn_examples.py`: GNN 기반 추천 예제 스크립트 테스트.
+- `tests/test_hybrid.py`: 하이브리드 추천 예제 스크립트 테스트.
+- `tests/test_matrix_factorization.py`: 행렬 분해 예제 스크립트 테스트.
+- `tests/test_sequential.py`: 순차 추천 예제 스크립트 테스트.
+모든 예제 스크립트가 오류 없이 실행되고, 예상되는 형태의 추천 관련 출력을 생성하는지 각 해당 테스트 파일에서 검증합니다.
 
 ### 저장소 디렉토리 구조
 ```
@@ -294,7 +301,13 @@ pytest -v
 ├── tests/                    # 테스트 코드
 │   ├── __init__.py
 │   ├── test_data_generation.py
-│   └── test_example_scripts.py
+│   ├── test_collaborative_filtering.py
+│   ├── test_content_based.py
+│   ├── test_deep_learning.py
+│   ├── test_gnn_examples.py
+│   ├── test_hybrid.py
+│   ├── test_matrix_factorization.py
+│   └── test_sequential.py
 └── .gitignore                # Git 무시 파일
 ```
 
