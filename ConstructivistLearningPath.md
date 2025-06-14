@@ -13,13 +13,13 @@
 
 ```mermaid
 graph LR
-    A["당신의 호기심\n\"어떻게 추천을 할까?\""] --> B(기본 개념 탐색);
-    B --> C{"간단한 모델 시도\n예: 인기도, 콘텐츠 기반"};
-    C --> D["실험 및 관찰\n\"무엇이 효과가 있을까? 무엇이 효과가 없을까?\""];
-    D --> E{"더 깊이 들어가기\n협업 필터링, 행렬 분해"};
-    E --> F["구축 및 테스트\n\"예측을 개선할 수 있을까?\""];
-    F --> G{"고급 기술 탐색\n딥러닝, GNN"};
-    G --> H["혁신 및 창조\n\"자신만의 추천 시스템을 설계하세요!\""];
+    A["당신의 호기심  어떻게 추천을 할까? "] --> B(기본 개념 탐색);
+    B --> C{"간단한 모델 시도 예: 인기도, 콘텐츠 기반"};
+    C --> D["실험 및 관찰  무엇이 효과가 있을까? 무엇이 효과가 없을까? "];
+    D --> E{"더 깊이 들어가기 협업 필터링, 행렬 분해"};
+    E --> F["구축 및 테스트  예측을 개선할 수 있을까? "];
+    F --> G{"고급 기술 탐색 딥러닝, GNN"};
+    G --> H["혁신 및 창조  자신만의 추천 시스템을 설계하세요! "];
     H --> I(숙달 및 지속적인 학습);
 ```
 
@@ -37,10 +37,16 @@ graph LR
 
 ```mermaid
 graph TD
-    U["당신, 사용자"] -->|"무엇을 하나요?\n(클릭, 구매, 평가)"| I["항목들\n(영화, 노래, 제품)"]
-    I -->|"그것의 특징은 무엇인가요?\n(장르, 아티스트, 브랜드)"| S["추천 시스템\n우리의 \"마법 상자\""]
-    U -->|"당신은 누구인가요?\n(선호도, 기록)"| S
-    S -->|"다음에 무엇을 봐야 할까요?\n(예측 및 추천)"| U
+    U["당신, 사용자"] -->|"무엇을 하나요?
+     (클릭, 구매, 평가)"| I["항목들
+    (영화, 노래, 제품)"]
+    I -->|"그것의 특징은 무엇인가요?
+     (장르, 아티스트, 브랜드)"| S["추천 시스템
+      '마법 상자'"]
+    U -->|"당신은 누구인가요?
+     (선호도, 기록)"| S
+    S -->|"다음에 무엇을 봐야 할까요?
+     (예측 및 추천)"| U
 ```
 
 이 다이어그램은 기본적인 흐름을 보여줍니다. 하지만 "마법 상자"(우리의 시스템)가 작동하기 위해서는 정보가 필요합니다. 이 정보는 종종 "피드백"이라고 불립니다.
@@ -104,8 +110,10 @@ graph TD
             U_Target[대상 사용자] --> Q1{"누가 비슷한 항목들을 좋아했나요?"};
             Q1 --> U_Similar1[비슷한 사용자 1];
             Q1 --> U_Similar2[비슷한 사용자 2];
-            U_Similar1 --> I_LikedBySimilar1["항목 X\n(비슷한 사용자 1이 좋아함)"];
-            U_Similar2 --> I_LikedBySimilar2["항목 Y\n(비슷한 사용자 2가 좋아함)"];
+            U_Similar1 --> I_LikedBySimilar1["항목 X
+             (비슷한 사용자 1이 좋아함)"];
+            U_Similar2 --> I_LikedBySimilar2["항목 Y
+             (비슷한 사용자 2가 좋아함)"];
             I_LikedBySimilar1 --> PotentialRec1{항목 X를 추천할까요?};
             I_LikedBySimilar2 --> PotentialRec2{항목 Y를 추천할까요?};
             PotentialRec1 --> U_Target;
@@ -129,8 +137,8 @@ graph TD
     ```mermaid
     graph TD
         subgraph "항목 기반 CF: 과정"
-            U_Current[사용자] -- 좋아함 --> I_Known["알려진 항목\n(예: 사용자가 본 영화)"]
-            I_Known --> Q2{"다른 어떤 항목들이 비슷한가요?\n(사용자 상호작용 패턴 기반)"}
+            U_Current[사용자] -- 좋아함 --> I_Known["알려진 항목 (예: 사용자가 본 영화)"]
+            I_Known --> Q2{"다른 어떤 항목들이 비슷한가요? (사용자 상호작용 패턴 기반)"}
             Q2 --> I_Similar1[비슷한 항목 1]
             Q2 --> I_Similar2[비슷한 항목 2]
             I_Similar1 --> Rec1{항목 1 추천}
@@ -161,10 +169,10 @@ graph TD
     ```mermaid
     graph TD
         subgraph "콘텐츠 기반 필터링: 과정"
-            U_Profile["사용자 프로필\n무엇을 좋아했나요?\n예: 'SF', '로봇' 선호"]
-            I_New["새로운 항목\n무엇에 관한 것인가요?\n예: 'SF', '로봇', '우주 여행'이 나오는 영화"]
+            U_Profile["사용자 프로필 무엇을 좋아했나요? 예: 'SF', '로봇' 선호"]
+            I_New["새로운 항목 무엇에 관한 것인가요? 예: 'SF', '로봇', '우주 여행'이 나오는 영화"]
 
-            U_Profile --> Q_Match{"이 항목의 콘텐츠가\n사용자의 알려진 선호도와\n일치하나요?"};
+            U_Profile --> Q_Match{"이 항목의 콘텐츠가 사용자의 알려진 선호도와 일치하나요?"};
             I_New --> Q_Match;
             Q_Match -- 예 --> Recommend_It[새로운 항목 추천!];
             Q_Match -- 아니오 --> Dont_Recommend[이것은 아닐 것 같아요...];
@@ -203,16 +211,38 @@ graph TD
 
     이 더 작은 행렬들을 곱함으로써, 우리는 원래의 큰 행렬의 빈칸을 "채울" 수 있고 사용자가 아직 보지 못한 항목에 대한 평가를 예측할 수 있습니다!
 
+    | 구성 요소 | 설명 | 예시 |
+    |----------|------|------|
+    | 원본 행렬 | 사용자-항목 상호작용 행렬 | 사용자별 영화 평점 행렬 |
+    | 사용자-요인 행렬 | 사용자가 각 잠재 요인을 얼마나 선호하는지 | 사용자별 "액션", "로맨스", "코미디" 선호도 |
+    | 항목-요인 행렬 | 각 항목이 각 잠재 요인을 얼마나 포함하는지 | 영화별 "액션", "로맨스", "코미디" 요소 |
+    | 잠재 요인 | 명시적으로 정의되지 않은 숨겨진 특성 | "기발한 유머", "강한 여성 주인공" 등 |
+    | 행렬 곱 | 두 행렬의 곱으로 원본 행렬 근사 | 사용자 선호도 × 항목 특성 = 예상 평점 |
+
+    **장점:**
+    * 희소한 데이터에서도 패턴 발견 가능
+    * 잠재 요인을 통한 추천의 해석 가능성
+    * 새로운 사용자/항목에 대한 일반화 능력
+
+    **한계:**
+    * 잠재 요인의 실제 의미 해석이 어려울 수 있음
+    * 계산 비용이 높을 수 있음
+    * 콜드 스타트 문제는 여전히 존재
+
 *   **분해 과정 시각화:**
 
     ```mermaid
     graph TD
         subgraph "행렬 분해: 잠재적 요인 발견"
-            UserItemMatrix["사용자-항목 상호작용 행렬\n(많은 빈 셀!)"] -->|"다음으로 근사..."| Factors{"두 개의 더 작은 행렬의 곱"}
-            Factors --> UserFactors["사용자-잠재 요인 행렬\n(사용자 U가 요인 F를 얼마나 좋아하나요?)"]
-            Factors --> ItemFactors["항목-잠재 요인 행렬\n(항목 I가 요인 F를 얼마나 가지고 있나요?)"]
+            UserItemMatrix["사용자-항목 상호작용 행렬
+             (많은 빈 셀!)"] -->|"다음으로 근사..."| Factors{"두 개의 더 작은 행렬의 곱"}
+            Factors --> UserFactors["사용자-잠재 요인 행렬
+             (사용자 U가 요인 F를 얼마나 좋아하나요?)"]
+            Factors --> ItemFactors["항목-잠재 요인 행렬
+             (항목 I가 요인 F를 얼마나 가지고 있나요?)"]
 
-            UserFactors --> Prediction["상호작용 예측!\n(사용자의 요인과 항목의 요인을 곱함)"]
+            UserFactors --> Prediction["상호작용 예측!
+             (사용자의 요인과 항목의 요인을 곱함)"]
             ItemFactors --> Prediction
         end
     ```
@@ -252,14 +282,14 @@ graph TD
     ```mermaid
     graph TD
         subgraph "DNN 추천기: 임베딩으로 학습하기"
-            U_Input["사용자 ID / 특징"] --> U_Embed["사용자 임베딩 층\nLearns a dense vector for the user"]
-            I_Input["항목 ID / 특징"] --> I_Embed["항목 임베딩 층\nLearns a dense vector for the item"]
+            U_Input["사용자 ID / 특징"] --> U_Embed["사용자 임베딩 층 Learns a dense vector for the user"]
+            I_Input["항목 ID / 특징"] --> I_Embed["항목 임베딩 층 Learns a dense vector for the item"]
 
-            U_Embed --> Network_Core["딥러닝 신경망\n(Multiple Hidden Layers)"]
+            U_Embed --> Network_Core["딥러닝 신경망 (Multiple Hidden Layers)"]
             I_Embed --> Network_Core
 
-            Network_Core --> Processing{"Layers process and combine\nuser & item embeddings,\nlearning complex interactions"}
-            Processing --> Output["출력층\nPredicts interaction\n(e.g., rating, click probability)"]
+            Network_Core --> Processing{"Layers process and combine user & item embeddings, learning complex interactions"}
+            Processing --> Output["출력층 Predicts interaction (e.g., rating, click probability)"]
         end
     ```
 
@@ -290,9 +320,9 @@ SASRec은 "Self-Attention"이라는 강력한 메커니즘(Transformer로 유명
     ```mermaid
     graph LR
         subgraph "SASRec: 시퀀스에서 다음 항목 예측"
-            PastInteractions["사용자의 과거 상호작용\n(예: 항목 A -> 항목 B -> 항목 C)"] --> Model["SASRec 모델\nSelf-Attention으로 과거 항목 가중치 학습"]
+            PastInteractions["사용자의 과거 상호작용 (예: 항목 A -> 항목 B -> 항목 C)"] --> Model["SASRec 모델 Self-Attention으로 과거 항목 가중치 학습"]
             Model --> Q{"다음에 무엇이 나올까?"}
-            Q --> PredictedNextItem["예측된 다음 항목\n(예: 항목 D)"]
+            Q --> PredictedNextItem["예측된 다음 항목 (예: 항목 D)"]
         end
     ```
 
@@ -326,14 +356,14 @@ SASRec은 "Self-Attention"이라는 강력한 메커니즘(Transformer로 유명
         subgraph "투타워 모델: 사용자 & 항목 이해"
             direction LR
             subgraph "타워 1: 사용자 이해"
-                U_Feat["사용자 특징\n(ID, 활동, 인구통계)"] --> U_NN["사용자 신경망\n(Processes user info)"] --> U_Embed["학습된 사용자 임베딩"]
+                U_Feat["사용자 특징 (ID, 활동, 인구통계)"] --> U_NN["사용자 신경망 (Processes user info)"] --> U_Embed["학습된 사용자 임베딩"]
             end
 
             subgraph "타워 2: 항목 이해"
-                I_Feat["항목 특징\n(ID, 설명, 카테고리)"] --> I_NN["항목 신경망\n(Processes item info)"] --> I_Embed["학습된 항목 임베딩"]
+                I_Feat["항목 특징 (ID, 설명, 카테고리)"] --> I_NN["항목 신경망 (Processes item info)"] --> I_Embed["학습된 항목 임베딩"]
             end
 
-            U_Embed --> Combine{"결합 및 예측\nHow well does this User\nmatch with this Item?"}
+            U_Embed --> Combine{"결합 및 예측 How well does this User match with this Item?"}
             I_Embed --> Combine
             Combine --> Prediction["추천 점수"]
         end
@@ -367,8 +397,8 @@ SASRec은 "Self-Attention"이라는 강력한 메커니즘(Transformer로 유명
             U2 -- Interacts --> I3["항목 3"]
             I1 -- Interacts --> U3["사용자 3"]
 
-            U1 -- "GNN은 이웃(I1, I2)을\n참고해 임베딩 학습" --> Emb_U1["사용자 1 임베딩"]
-            I1 -- "GNN은 이웃(U1, U2, U3)을\n참고해 임베딩 학습" --> Emb_I1["항목 1 임베딩"]
+            U1 -- "GNN은 이웃(I1, I2)을 참고해 임베딩 학습" --> Emb_U1["사용자 1 임베딩"]
+            I1 -- "GNN은 이웃(U1, U2, U3)을 참고해 임베딩 학습" --> Emb_I1["항목 1 임베딩"]
 
             Emb_U1 --> Rec_Engine["추천 엔진"]
             Emb_I1 --> Rec_Engine
@@ -431,12 +461,12 @@ GNN은 추천 분야에서 빠르게 진화하는 영역으로, 복잡한 관계
         *   **간단한 다이어그램 그려보기(Mermaid!):** 데이터 소스와 각 소스에서 얻고 싶은 인사이트를 간단히 그려보세요.
         ```mermaid
         graph TD
-            UserInteractions["사용자 상호작용 데이터\n(클릭, 조회, 평점)"] --> Exploration1{"일반적인 사용자 경로는?\n인기 항목은?"}
-            ItemMetadata["항목 메타데이터\n(장르, 브랜드, 설명)"] --> Exploration2{"핵심 항목 특징은?\n카탈로그 다양성은?"}
+            UserInteractions["사용자 상호작용 데이터 (클릭, 조회, 평점)"] --> Exploration1{"일반적인 사용자 경로는? 인기 항목은?"}
+            ItemMetadata["항목 메타데이터 (장르, 브랜드, 설명)"] --> Exploration2{"핵심 항목 특징은? 카탈로그 다양성은?"}
             Exploration1 --> Insights["도출된 사용자 인사이트"]
             Exploration2 --> Insights2["도출된 항목 인사이트"]
             Insights & Insights2 --> SystemDesign["시스템 설계에 반영"]
-        end
+        
         ```
 
 *   **챌린지 2: 파이프라인 설계자 – 데이터 흐름 만들기**
