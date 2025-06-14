@@ -7,3 +7,6 @@ pytest>=7.0,<8.5
 scipy>=1.7,<1.14
 torch
 torch-geometric
+numpy==2.3.0
+pandas==2.3.0
+pytest==8.4.0
