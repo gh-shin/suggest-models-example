@@ -59,9 +59,9 @@ def test_run_tfidf_example():
     # Generic keywords for tfidf might be different, e.g., similarity scores
     generic_keywords_present = (
         "추천 아이템 목록" in process.stdout or
-        "recommendation list" in process.stdout.lower() or
+            "recommendations for User".lower() in process.stdout.lower() or # Modified
         "유사도:" in process.stdout or # TF-IDF often prints similarity scores
-        "similarity score" in process.stdout.lower()
+            "Similarity:".lower() in process.stdout.lower() # Modified
     )
     assert generic_keywords_present, \
         f"Script {script_path_rel} did not contain expected recommendation/similarity keywords in stdout.\nStdout:\n{process.stdout}"

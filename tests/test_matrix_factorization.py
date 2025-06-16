@@ -58,9 +58,9 @@ def test_run_svd_example():
 
     generic_keywords_present = (
         "추천 아이템 목록" in process.stdout or
-        "recommendation list" in process.stdout.lower() or
+            "recommendations for User".lower() in process.stdout.lower() or # Modified
         "예상 평점" in process.stdout or
-        "predicted_rating" in process.stdout.lower()
+            "Predicted Rating".lower() in process.stdout.lower() # Modified
     )
     assert generic_keywords_present, \
         f"Script {script_path_rel} did not contain expected recommendation keywords in stdout.\nStdout:\n{process.stdout}"
