@@ -59,9 +59,9 @@ def test_run_transformer_sasrec_example():
 
     generic_keywords_present = (
         "추천된 다음 아이템" in process.stdout or
-        "next item recommendations" in process.stdout.lower() or
+            "Recommended next items:".lower() in process.stdout.lower() or # Modified
         "추천 아이템 목록" in process.stdout or
-        "recommendation list" in process.stdout.lower()
+            "recommendation list" in process.stdout.lower() # This might need adjustment if not applicable
     )
     assert generic_keywords_present, \
         f"Script {script_path_rel} did not contain expected recommendation keywords in stdout.\nStdout:\n{process.stdout}"
