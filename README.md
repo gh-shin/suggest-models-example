@@ -79,7 +79,7 @@ scipy
 
 ---
 ##### 아이템 기반 협업 필터링 (Item-Based Collaborative Filtering) 예제
-*   **파일:** `examples/collaborative_filtering/item_cf_example.py`
+*   **파일:** [`examples/collaborative_filtering/item_cf_example.py`](examples/collaborative_filtering/item_cf_example.py)
 *   **모델:** 아이템 기반 협업 필터링 (Item-Based Collaborative Filtering)
 *   **목적:** 사용자가 특정 아이템을 좋아했을 때, 그 아이템과 유사한 다른 아이템들을 추천하는 방식을 시연합니다. 아이템 간 유사도는 사용자들의 평점 패턴을 기반으로 계산됩니다.
 *   **실행 방법:** `python examples/collaborative_filtering/item_cf_example.py`
@@ -92,7 +92,7 @@ scipy
 
 ---
 ##### 사용자 기반 협업 필터링 (User-Based Collaborative Filtering) 예제
-*   **파일:** `examples/collaborative_filtering/user_cf_example.py`
+*   **파일:** [`examples/collaborative_filtering/user_cf_example.py`](examples/collaborative_filtering/user_cf_example.py)
 *   **모델:** 사용자 기반 협업 필터링 (User-Based Collaborative Filtering)
 *   **목적:** 특정 사용자와 유사한 취향을 가진 다른 사용자들이 좋아했던 아이템을 추천하는 방식을 시연합니다.
 *   **실행 방법:** `python examples/collaborative_filtering/user_cf_example.py`
@@ -105,7 +105,7 @@ scipy
 
 ---
 ##### 특이값 분해 (SVD - Singular Value Decomposition) 예제
-*   **파일:** `examples/matrix_factorization/svd_example.py`
+*   **파일:** [`examples/matrix_factorization/svd_example.py`](examples/matrix_factorization/svd_example.py)
 *   **모델:** 특이값 분해 (SVD) - `surprise` 라이브러리 사용
 *   **목적:** 사용자-아이템 평점 행렬을 저차원 잠재 요인 행렬로 분해하여 평점을 예측하고 아이템을 추천합니다.
 *   **실행 방법:** `python examples/matrix_factorization/svd_example.py`
@@ -118,7 +118,7 @@ scipy
 
 ---
 ##### 콘텐츠 기반 필터링 (TF-IDF) 예제
-*   **파일:** `examples/content_based/tfidf_example.py`
+*   **파일:** [`examples/content_based/tfidf_example.py`](examples/content_based/tfidf_example.py)
 *   **모델:** TF-IDF를 활용한 콘텐츠 기반 필터링
 *   **목적:** 아이템의 텍스트 설명을 TF-IDF 벡터로 변환하고, 사용자가 과거에 좋아했던 아이템의 콘텐츠와 유사한 아이템을 추천합니다.
 *   **실행 방법:** `python examples/content_based/tfidf_example.py`
@@ -131,7 +131,7 @@ scipy
 
 ---
 ##### 딥러닝 기반 추천 (DNN with Embeddings) 예제
-*   **파일:** `examples/deep_learning/dnn_recommender.py`
+*   **파일:** [`examples/deep_learning/dnn_recommender.py`](examples/deep_learning/dnn_recommender.py)
 *   **모델:** 임베딩과 Dense 레이어를 사용한 심층 신경망 (DNN) - TensorFlow/Keras 사용
 *   **목적:** 사용자 ID와 아이템 ID를 임베딩 벡터로 변환 후 DNN을 통과시켜 평점을 예측하고 추천합니다.
 *   **실행 방법:** `python examples/deep_learning/dnn_recommender.py`
@@ -144,7 +144,7 @@ scipy
 
 ---
 ##### SASRec (Self-Attentive Sequential Recommendation) 예제
-*   **파일:** `examples/sequential/transformer_sasrec_example.py`
+*   **파일:** [`examples/sequential/transformer_sasrec_example.py`](examples/sequential/transformer_sasrec_example.py)
 *   **모델:** 자기 주의(Self-Attention) 메커니즘 기반 순차 추천 모델 (SASRec) - TensorFlow/Keras 사용
 *   **목적:** 사용자의 아이템 상호작용 시퀀스를 입력으로 받아 다음 아이템을 예측하는 Transformer 기반 모델을 시연합니다.
 *   **실행 방법:** `python examples/sequential/transformer_sasrec_example.py`
@@ -157,7 +157,7 @@ scipy
 
 ---
 ##### 투 타워 하이브리드 추천 (Two-Tower Hybrid Recommendation) 예제
-*   **파일:** `examples/hybrid/two_tower_hybrid_example.py`
+*   **파일:** [`examples/hybrid/two_tower_hybrid_example.py`](examples/hybrid/two_tower_hybrid_example.py)
 *   **모델:** 사용자 타워와 아이템 타워로 구성된 투-타워 하이브리드 추천 모델 - TensorFlow/Keras 사용
 *   **목적:** 사용자 정보(ID)와 아이템 정보(ID 및 장르)를 각각의 타워에서 임베딩으로 처리한 후, 두 임베딩 간의 유사도(점곱)를 통해 사용자-아이템 간의 상호작용을 예측하고 추천하는 모델을 시연합니다. 아이템 타워는 아이템 ID와 장르 정보를 모두 활용합니다.
 *   **실행 방법:** `python examples/hybrid/two_tower_hybrid_example.py`
@@ -170,7 +170,7 @@ scipy
 
 ---
 ##### LightGCN (Light Graph Convolution Network - TensorFlow/Keras) 예제
-*   **파일:** `examples/gnn/lightgcn_tf_example.py`
+*   **파일:** [`examples/gnn/lightgcn_tf_example.py`](examples/gnn/lightgcn_tf_example.py)
 *   **모델:** Light Graph Convolution Network (LightGCN) - TensorFlow/Keras 사용
 *   **목적:** 사용자-아이템 상호작용을 이분 그래프(bipartite graph)로 모델링하고, 그래프 컨볼루션을 통해 학습된 사용자 및 아이템 임베딩을 활용하여 추천을 생성하는 방식을 시연합니다. LightGCN은 GCN에서 특징 변환 및 비선형 활성화 함수를 제거하여 단순화한 모델입니다.
 *   **실행 방법:** `python examples/gnn/lightgcn_tf_example.py`
@@ -183,7 +183,7 @@ scipy
 
 ---
 ##### NGCF (Neural Graph Collaborative Filtering) 예제
-*   **파일:** `examples/gnn/ngcf_example.py`
+*   **파일:** [`examples/gnn/ngcf_example.py`](examples/gnn/ngcf_example.py)
 *   **모델:** NGCF (Neural Graph Collaborative Filtering) - 개념적 개요 및 구조
 *   **목적:** NGCF 모델의 핵심 아이디어, 구성 요소(임베딩 레이어, 임베딩 전파 레이어, 예측 레이어), 장단점 및 학술 논문 정보를 제공합니다. 스크립트는 실제 실행 가능한 모델이 아닌, 개념 이해를 돕기 위한 고수준 코드 구조와 설명을 포함합니다.
 *   **실행 방법:** `python examples/gnn/ngcf_example.py`
@@ -197,7 +197,7 @@ scipy
 
 ---
 ##### PinSage 예제
-*   **파일:** `examples/gnn/pinsage_example.py`
+*   **파일:** [`examples/gnn/pinsage_example.py`](examples/gnn/pinsage_example.py)
 *   **모델:** PinSage (Graph Convolutional Neural Networks for Web-Scale Recommender Systems) - 개념적 개요 및 구조
 *   **목적:** 대규모 그래프에서 아이템 임베딩을 효과적으로 학습하기 위해 Pinterest에서 개발한 PinSage 모델의 핵심 아이디어(랜덤 워크 기반 이웃 샘플링, 특징 집계 시 중요도 풀링, 멀티 레이어 구조 등), 장단점 및 학술 논문 정보를 제공합니다. 스크립트는 실제 실행 가능한 모델이 아닌, 개념 이해를 위한 고수준 코드 구조와 설명을 담고 있습니다.
 *   **실행 방법:** `python examples/gnn/pinsage_example.py`
@@ -215,7 +215,7 @@ scipy
 
 ---
 ##### GCN (Graph Convolutional Network) 추천 예제
-*   **파일:** `examples/gnn/gcn_example.py`
+*   **파일:** [`examples/gnn/gcn_example.py`](examples/gnn/gcn_example.py)
 *   **모델:** GCN (Graph Convolutional Network) - 개념적 개요 및 구조
 *   **목적:** 표준 GCN 모델의 핵심 원리(이웃 노드 특징의 정규화된 합계 및 변환), GCN 레이어 구조, 추천 시스템에의 적용 방안, 장단점 및 학술 논문 정보를 제공합니다. 스크립트는 실제 실행 가능한 모델이 아닌, 개념 이해를 위한 고수준 코드 구조와 설명을 포함합니다.
 *   **실행 방법:** `python examples/gnn/gcn_example.py`
@@ -229,7 +229,7 @@ scipy
 
 ---
 ##### GraphSAGE (Graph SAmple and aggreGatE) 추천 예제
-*   **파일:** `examples/gnn/graphsage_example.py`
+*   **파일:** [`examples/gnn/graphsage_example.py`](examples/gnn/graphsage_example.py)
 *   **모델:** GraphSAGE (Graph SAmple and aggreGatE) - 개념적 개요 및 구조
 *   **목적:** 대규모 그래프에서 확장 가능하고 귀납적인 노드 임베딩 학습 방법인 GraphSAGE의 핵심 원리(이웃 노드 샘플링, 다양한 집계 함수 - Mean/LSTM/Pooling, 귀납적 학습)와 구조, 장단점 및 학술 논문 정보를 제공합니다. 스크립트는 실제 실행 가능한 모델이 아닌, 개념 이해를 위한 고수준 코드 구조와 설명을 담고 있습니다.
 *   **실행 방법:** `python examples/gnn/graphsage_example.py`
@@ -243,7 +243,7 @@ scipy
 
 ---
 ##### GAT (Graph Attention Network) 추천 예제
-*   **파일:** `examples/gnn/gat_example.py`
+*   **파일:** [`examples/gnn/gat_example.py`](examples/gnn/gat_example.py)
 *   **모델:** GAT (Graph Attention Network) - 개념적 개요 및 구조
 *   **목적:** 그래프 컨볼루션 과정에서 어텐션 메커니즘을 활용하는 GAT 모델의 핵심 아이디어(이웃 노드에 대한 가중치 학습, 멀티 헤드 어텐션), 구조, 장단점 및 학술 논문 정보를 제공합니다. 스크립트는 실제 실행 가능한 모델이 아닌, 개념 이해를 위한 고수준 코드 구조와 설명을 담고 있습니다.
 *   **실행 방법:** `python examples/gnn/gat_example.py`
